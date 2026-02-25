@@ -820,7 +820,8 @@ function saveExtraCosts() {
   }
   
 
-  //localStorage.removeItem('extraCosts');
+//ocalStorage.removeItem('extraCosts');
+localStorage.clear();
 
 document.getElementById('addCostBtn').addEventListener('click', () => {
     addCostRow();
