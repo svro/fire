@@ -1,0 +1,184 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: #333;
+}
+
+.container {
+    max-width: 1700px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.main-content {
+    display: flex;
+    gap: 0;
+    min-height: calc(100vh - 40px); 
+}
+
+.controls-panel {
+    flex: 0 0 260px;
+    padding: 40px;
+    background: #f8f9fa;
+    border-right: 1px solid #e9ecef;
+}
+
+.pension-panel {
+    flex: 0 0 260px;
+    padding: 40px;
+    background: #f8f9fa;
+    border-left: 1px solid #e9ecef;
+}
+
+.controls-panel h2,
+.pension-panel h2 {
+    font-size: 1.5em;
+    margin-bottom: 30px;
+    color: #333;
+    font-weight: 600;
+}
+
+.slider-group {
+    margin-bottom: 35px;
+}
+
+.slider-group label {
+    display: block;
+    font-size: 1em;
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 12px;
+}
+
+.slider-group .value {
+    font-size: 1.3em;
+    font-weight: 700;
+    color: #667eea;
+    margin: 0 5px;
+}
+
+input[type="range"] {
+    width: 100%;
+    height: 8px;
+    border-radius: 5px;
+    background: #dee2e6;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.4);
+    transition: all 0.2s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    background: #5568d3;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.6);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.4);
+    transition: all 0.2s ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+    background: #5568d3;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.6);
+}
+
+.chart-panel {
+    flex: 1;
+    padding: 40px;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.chart-panel h2 {
+    font-size: 1.5em;
+    margin-bottom: 30px;
+    color: #333;
+    font-weight: 600;
+}
+
+.chart-wrapper {
+    width: 100%;
+    height: 450px;
+    position: relative;
+}
+
+.chart-sliders {
+    margin-top: 30px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.chart-sliders .slider-group {
+    flex: 1 1 200px;
+    margin-bottom: 0;
+}
+
+@media (max-width: 1200px) {
+    .main-content {
+        flex-wrap: wrap;
+    }
+    
+    .controls-panel {
+        flex: 1 1 100%;
+        border-right: none;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .chart-panel {
+        flex: 1 1 100%;
+        order: 2;
+    }
+    
+    .pension-panel {
+        flex: 1 1 100%;
+        border-left: none;
+        border-top: 1px solid #e9ecef;
+        order: 3;
+    }
+}
+
+@media (max-width: 968px) {
+    .controls-panel,
+    .pension-panel {
+        flex: 0 0 100%;
+    }
+    
+    .chart-wrapper,
+    #portfolioChart {
+        height: 400px !important;
+    }
+}
