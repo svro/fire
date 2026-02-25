@@ -160,11 +160,12 @@ details summary::after {
         flex: 1 1 100%;
         border-right: none;
         border-bottom: 1px solid #e9ecef;
+        order: 2;
     }
     
     .chart-panel {
         flex: 1 1 100%;
-        order: 2;
+        order: 1;
     }
     
     .pension-panel {
@@ -173,12 +174,8 @@ details summary::after {
         border-top: 1px solid #e9ecef;
         order: 3;
     }
-
-    .shared-panel {
-        order: 4
-    }
 }
-
+/*
 @media (max-width: 968px) {
     .controls-panel,
     .pension-panel {
@@ -190,7 +187,7 @@ details summary::after {
         height: 400px !important;
     }
 }
-
+*/
 @media (max-width: 768px) {
     .main-content {
       flex-direction: column;
