@@ -388,7 +388,7 @@ function updateChart() {
     
     const datasets = [
         {
-            label: 'Beide werken',
+            label: '2 werken',
             data: growthData,
             borderColor: '#667eea',
             backgroundColor: 'rgba(102, 126, 234, 0.1)',
@@ -403,7 +403,7 @@ function updateChart() {
             spanGaps: false
         },
         {
-            label: 'Eén werkt',
+            label: '1 werkt',
             data: oneWorksData,
             borderColor: 'green',
             backgroundColor: 'rgba(141, 182, 147, 0.1)',
@@ -418,7 +418,7 @@ function updateChart() {
             spanGaps: false
         },
         {
-            label: 'Beide op pensioen',
+            label: '0 werken',
             data: withdrawalData,
             borderColor: '#e74c3c',
             backgroundColor: 'rgba(231, 76, 60, 0.1)',
@@ -461,17 +461,23 @@ function updateChart() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: {
+                  top: 5,
+                  right: 5,
+                  bottom: 0,
+                  left: 0
+                }
+            },
             plugins: {
                 legend: {
                     display: true,
                     position: 'top',
                     labels: {
-                        font: {
-                            size: 14,
-                            weight: '500'
-                        },
-                        padding: 15
-                    }
+                        font: { size: window.innerWidth < 768 ? 12 : 14 },
+                        padding: window.innerWidth < 768 ? 8 : 15,
+                        boxWidth: window.innerWidth < 768 ? 20 : 40
+                      }
                 },
                 tooltip: {
                     mode: 'index',
@@ -525,10 +531,10 @@ function updateChart() {
                     title: {
                         display: true,
                         text: 'Datum (in jaren na 2000)',
-                        font: {
-                            size: 14,
-                            weight: '600'
-                        },
+                        font: { 
+                            size: window.innerWidth < 768 ? 10 : 12,
+                            weight: window.innerWidth < 768 ? '400' : '600'
+                         },
                         padding: { top: 10, bottom: 10 }
                     },
                     grid: {
@@ -536,7 +542,7 @@ function updateChart() {
                     },
                     ticks: {
                         font: {
-                            size: 12
+                            size: window.innerWidth < 768 ? 10 : 12
                         },
                         callback: function(value, index) {
                             const year = data.years[index];
@@ -555,22 +561,25 @@ function updateChart() {
                     title: {
                         display: true,
                         text: 'Portefeuille Waarde (€)',
-                        font: {
-                            size: 14,
-                            weight: '600'
-                        },
+                        font: { 
+                            size: window.innerWidth < 768 ? 10 : 12,
+                            weight: window.innerWidth < 768 ? '400' : '600'
+                         },
                         padding: { top: 10, bottom: 10 }
                     },
                     grid: {
                         color: 'rgba(0, 0, 0, 0.05)'
                     },
                     ticks: {
-                        font: {
-                            size: 12
-                        },
+                        font: { size: window.innerWidth < 768 ? 10 : 12 },
                         callback: function(value) {
+                            if (value >= 1000000) {
+                              return '€' + (value / 1000000).toFixed(1) + 'M';
+                            } else if (value >= 1000) {
+                              return '€' + (value / 1000).toFixed(0) + 'K';
+                            }
                             return '€' + formatNumber(value);
-                        }
+                          }
                     }
                 }
             },
@@ -735,6 +744,7 @@ swrSlider.addEventListener('input', function() {
 */
 
 document.addEventListener("DOMContentLoaded", function() {
+    
     // Selecteer alle sliders op de pagina
     const sliders = document.querySelectorAll('input[type="range"]');
 

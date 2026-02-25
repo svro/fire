@@ -115,7 +115,7 @@ input[type="range"]::-moz-range-thumb:hover {
 
 .chart-panel {
     flex: 1;
-    padding: 40px;
+    padding: 8px;
     background: white;
     display: flex;
     flex-direction: column;
@@ -147,6 +147,10 @@ input[type="range"]::-moz-range-thumb:hover {
     margin-bottom: 0;
 }
 
+details summary::after {
+    display: none; /* verberg op desktop */
+  }
+
 @media (max-width: 1200px) {
     .main-content {
         flex-wrap: wrap;
@@ -169,6 +173,10 @@ input[type="range"]::-moz-range-thumb:hover {
         border-top: 1px solid #e9ecef;
         order: 3;
     }
+
+    .shared-panel {
+        order: 4
+    }
 }
 
 @media (max-width: 968px) {
@@ -182,3 +190,95 @@ input[type="range"]::-moz-range-thumb:hover {
         height: 400px !important;
     }
 }
+
+@media (max-width: 768px) {
+    .main-content {
+      flex-direction: column;
+      height: auto; /* geen vaste hoogte meer */
+    }
+    .controls-panel, .chart-panel, .pension-panel {
+      flex: 0 0 auto;
+      width: 100%;
+      padding: 20px;
+      border: none;
+      border-bottom: 1px solid #e9ecef;
+    }
+    /* Verplaats chart naar boven zodat die direct zichtbaar is */
+    .chart-panel {
+      order: -1; 
+    }
+    .chart-wrapper {
+        height: 300px;
+    }
+    /* Slider zelf smaller */
+  input[type="range"] {
+    height: 6px;
+  }
+
+  /* Duim kleiner */
+  input[type="range"]::-webkit-slider-thumb {
+    width: 18px;
+    height: 18px;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+  }
+
+  .slider-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .slider-group label {
+    font-size: 0.8em;
+    white-space: nowrap;
+    flex: 0 0 auto; /* label krijgt enkel de ruimte die het nodig heeft */
+  }
+
+  .slider-group .value {
+    font-size: 0.9em;
+    font-weight: 700;
+    color: #667eea;
+    flex: 0 0 45px; /* vaste breedte zodat slider niet springt */
+    text-align: right;
+  }
+
+  input[type="range"] {
+    flex: 1; /* slider vult de rest op */
+    height: 4px;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Minder padding op de panelen */
+  .controls-panel, .pension-panel, .chart-panel {
+    padding: 15px;
+  }
+}
+
+/* In je bestaande CSS: */
+input[type="range"]::-webkit-slider-thumb {
+    width: 28px; /* iets groter voor vingers */
+    height: 28px;
+  }
+  .slider-group {
+    margin-bottom: 25px; /* meer ruimte tussen sliders */
+  }
+
+#extraCostsSection {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+table {
+    min-width: 500px; /* forceer scrollen als het te smal wordt */
+}
+
+
+  

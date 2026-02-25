@@ -10,59 +10,59 @@
 <body>
     <div class="container">
         <div class="main-content">
-            <div class="controls-panel">
-                <h2>Persoon 1</h2>
-                
-                <div class="slider-group">
-                    <label for="currentAge1">
-                        Huidige leeftijd
-                        <span class="value" id="currentAge1Value">45</span> jaar
-                    </label>
-                    <input type="range" id="currentAge1" min="18" max="100" value="45" step="1">
+            
+                <div class="controls-panel">
+                    <details open> 
+                    <summary>Persoon 1</summary>
+                    <div class="slider-group">
+                        <label for="currentAge1">
+                            Leeftijd
+                            <span class="value" id="currentAge1Value">45</span>
+                        </label>
+                        <input type="range" id="currentAge1" min="18" max="100" value="45" step="1">
+                    </div>
+                    
+                    <div class="slider-group">
+                        <label for="retirementAge1">
+                            Pensioenleeftijd
+                            <span class="value" id="retirementAge1Value">67</span> jaar
+                        </label>
+                        <input type="range" id="retirementAge1" min="18" max="100" value="67" step="1">
+                    </div>
+                    
+                    <div class="slider-group">
+                        <label for="endAge1">
+                            Eindleeftijd
+                            <span class="value" id="endAge1Value">90</span> jaar
+                        </label>
+                        <input type="range" id="endAge1" min="18" max="100" value="90" step="1">
+                    </div>
+                    <div class="slider-group">
+                        <label for="pensionAge">
+                            Staatspensioen leeftijd
+                            <span class="value" id="pensionAgeValue">67</span> jaar
+                        </label>
+                        <input type="range" id="pensionAge" min="50" max="100" value="67" step="1">
+                    </div>
+                    
+                    <div class="slider-group">
+                        <label for="monthlyPension">
+                            Maandelijks staatspensioen
+                            <span class="value" id="monthlyPensionValue">1.000</span> €
+                        </label>
+                        <input type="range" id="monthlyPension" min="0" max="5000" value="1000" step="50">
+                    </div>
+                    </details>
                 </div>
-                
-                <div class="slider-group">
-                    <label for="retirementAge1">
-                        Pensioenleeftijd
-                        <span class="value" id="retirementAge1Value">67</span> jaar
-                    </label>
-                    <input type="range" id="retirementAge1" min="18" max="100" value="67" step="1">
-                </div>
-                
-                <div class="slider-group">
-                    <label for="endAge1">
-                        Eindleeftijd
-                        <span class="value" id="endAge1Value">90</span> jaar
-                    </label>
-                    <input type="range" id="endAge1" min="18" max="100" value="90" step="1">
-                </div>
-                
-                
-                
-                
-                
-                
-                <div class="slider-group">
-                    <label for="pensionAge">
-                        Staatspensioen leeftijd (persoon 1)
-                        <span class="value" id="pensionAgeValue">67</span> jaar
-                    </label>
-                    <input type="range" id="pensionAge" min="50" max="100" value="67" step="1">
-                </div>
-                
-                <div class="slider-group">
-                    <label for="monthlyPension">
-                        Maandelijks staatspensioen (persoon 1)
-                        <span class="value" id="monthlyPensionValue">1.000</span> €
-                    </label>
-                    <input type="range" id="monthlyPension" min="0" max="5000" value="1000" step="50">
-                </div>                                
-            </div>
+                                            
+            
             
             <div class="chart-panel">
                 <div class="chart-wrapper">
                     <canvas id="portfolioChart"></canvas>
                 </div>
+                <details open> 
+                <summary>Gezamenlijke instellingen</summary>
                 <div class="chart-sliders">
                     <div class="slider-group">
                         <label for="currentAssets">
@@ -135,10 +135,12 @@
                       </div>
                       
                 </div>
+                </details>
             </div>
             
             <div class="pension-panel">
-                <h2>Persoon 2</h2>
+                <details open> 
+                    <summary>Persoon 2</summary>
                 
                 
                 
@@ -167,7 +169,7 @@
                 </div>
                 <div class="slider-group">
                     <label for="pensionAge2">
-                        Staatspensioen leeftijd (persoon 2)
+                        Staatspensioen leeftijd
                         <span class="value" id="pensionAge2Value">67</span> jaar
                     </label>
                     <input type="range" id="pensionAge2" min="50" max="100" value="67" step="1">
@@ -175,12 +177,12 @@
                 
                 <div class="slider-group">
                     <label for="monthlyPension2">
-                        Maandelijks staatspensioen (persoon 2)
+                        Maandelijks staatspensioen
                         <span class="value" id="monthlyPension2Value">1.000</span> €
                     </label>
                     <input type="range" id="monthlyPension2" min="0" max="5000" value="1000" step="50">
                 </div>
-                
+                </details>
                 
                 
             </div>
