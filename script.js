@@ -534,7 +534,7 @@ function updateChart() {
             scales: {
                 x: {
                     title: {
-                        display: true,
+                        display: window.innerWidth < 768 ? false: true,
                         text: 'Datum (in jaren na 2000)',
                         font: { 
                             size: window.innerWidth < 768 ? 10 : 12,
@@ -564,10 +564,10 @@ function updateChart() {
                 },
                 y: {
                     title: {
-                        display: true,
+                        display: window.innerWidth < 768 ? false: true,
                         text: 'Portefeuille Waarde (€)',
                         font: { 
-                            size: window.innerWidth < 768 ? 0 : 12,
+                            size: 12,
                             weight: '600'
                          },
                         padding: { top: 10, bottom: 10 }

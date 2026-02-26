@@ -147,7 +147,7 @@ details summary::after {
   }
 
 
-@media (max-width: 768px) {
+@media (max-width: 1200px) {
     .main-content {
       flex-direction: column;
       height: auto; /* geen vaste hoogte meer */
@@ -234,7 +234,7 @@ input[type="range"]::-webkit-slider-thumb {
   }
   .slider-group {
     margin-top: 8px; /* meer ruimte tussen sliders */
-    margin-bottom: 8px; /* meer ruimte tussen sliders */
+    margin-bottom:8px; /* meer ruimte tussen sliders */
   }
 
 #extraCostsSection {
