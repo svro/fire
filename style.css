@@ -135,14 +135,9 @@ input[type="range"]::-moz-range-thumb:hover {
     position: relative;
 }
 
-.chart-sliders {
-    margin-top: 30px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-}
 
-.chart-sliders .slider-group {
+
+.slider-group {
     flex: 1 1 200px;
     margin-bottom: 0;
 }
@@ -238,7 +233,8 @@ input[type="range"]::-webkit-slider-thumb {
     height: 28px;
   }
   .slider-group {
-    margin-bottom: 25px; /* meer ruimte tussen sliders */
+    margin-top: 8px; /* meer ruimte tussen sliders */
+    margin-bottom: 8px; /* meer ruimte tussen sliders */
   }
 
 #extraCostsSection {
