@@ -3,142 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FIRE Calculator - België</title>
+    <title>FIRE Calculator</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
+    
 <body>
     <div class="container">
-        <div class="main-content">
-            
-                <div class="controls-panel">
-                    <details open> 
-                    <summary>Persoon 1</summary>
-                    <div class="slider-group">
-                        <label for="currentAge1">
-                            Leeftijd
-                            <span class="value" id="currentAge1Value">25</span>
-                        </label>
-                        <input type="range" id="currentAge1" min="18" max="100" value="25" step="1">
-                    </div>
-                    
-                    <div class="slider-group">
-                        <label for="retirementAge1">
-                            Pensioenleeftijd
-                            <span class="value" id="retirementAge1Value">55</span>
-                        </label>
-                        <input type="range" id="retirementAge1" min="18" max="100" value="55" step="1">
-                    </div>
-                    
-                    <div class="slider-group">
-                        <label for="endAge1">
-                            Eindleeftijd
-                            <span class="value" id="endAge1Value">90</span>
-                        </label>
-                        <input type="range" id="endAge1" min="18" max="100" value="90" step="1">
-                    </div>
-                    <div class="slider-group">
-                        <label for="pensionAge">
-                            Staatspensioen leeftijd
-                            <span class="value" id="pensionAgeValue">68</span>
-                        </label>
-                        <input type="range" id="pensionAge" min="50" max="100" value="68" step="1">
-                    </div>
-                    
-                    <div class="slider-group">
-                        <label for="monthlyPension">
-                            Maandelijks staatspensioen
-                            <span class="value" id="monthlyPensionValue">1.000</span> €
-                        </label>
-                        <input type="range" id="monthlyPension" min="0" max="5000" value="1000" step="50">
-                    </div>
-                    </details>
+        <div class="main-content">            
+            <div class="person1-panel">
+                <details open> 
+                <summary>Persoon 1</summary>
+                <div class="slider-group">
+                    <label for="currentAge1">
+                        Leeftijd
+                        <span class="value" id="currentAge1Value">25</span>
+                    </label>
+                    <input type="range" id="currentAge1" min="18" max="100" value="25" step="1">
+                </div>                
+                <div class="slider-group">
+                    <label for="retirementAge1">
+                        Stopleeftijd
+                        <span class="value" id="retirementAge1Value">55</span>
+                    </label>    
+                    <input type="range" id="retirementAge1" min="18" max="100" value="55" step="1">
                 </div>
-                                            
-            
-            
+                
+                <div class="slider-group">
+                    <label for="endAge1">
+                        Eindleeftijd
+                        <span class="value" id="endAge1Value">90</span>
+                    </label>
+                    <input type="range" id="endAge1" min="18" max="100" value="90" step="1">
+                </div>
+                <div class="slider-group">
+                    <label for="pensionAge">
+                        Staatspensioen leeftijd
+                        <span class="value" id="pensionAgeValue">68</span>
+                    </label>
+                    <input type="range" id="pensionAge" min="50" max="100" value="68" step="1">
+                </div>
+                
+                <div class="slider-group">
+                    <label for="monthlyPension">
+                        Staatspensioen
+                        <span class="value" id="monthlyPensionValue">1.000</span> € pm
+                    </label>
+                    <input type="range" id="monthlyPension" min="0" max="5000" value="1000" step="50">
+                </div>
+                </details>
+            </div>
             <div class="chart-panel">
                 <div class="chart-wrapper">
                     <canvas id="portfolioChart"></canvas>
                 </div>
-                <details open> 
-                <summary>Gezamenlijke instellingen</summary>
-                <div class="chart-sliders">
-                    <div class="slider-group">
-                        <label for="currentAssets">
-                            Huidige vermogen
-                            <span class="value" id="currentAssetsValue">10.000</span> €
-                        </label>
-                        <input type="range" id="currentAssets" min="0" max="2000000" value="10000" step="1000">
+                <div class="common-panel">
+                    <details open> 
+                    <summary>Gezamenlijke instellingen</summary>
+                    <div class="chart-sliders">
+                        <div class="slider-group">
+                            <label for="currentAssets">
+                                Vermogen nu
+                                <span class="value" id="currentAssetsValue">10.000</span> €
+                            </label>
+                            <input type="range" id="currentAssets" min="0" max="2000000" value="10000" step="1000">
+                        </div>
+                        <div class="slider-group">
+                            <label for="portfolioReturns">
+                                Rendement
+                                <span class="value" id="portfolioReturnsValue">5.0</span>%
+                            </label>
+                            <input type="range" id="portfolioReturns" min="0" max="15" value="5" step="0.1">
+                        </div>
+                        <div class="slider-group">
+                            <label for="annualContribution">
+                                Bijdrage 2 werken
+                                <span class="value" id="annualContributionValue">12.000</span> € pj
+                            </label>
+                            <input type="range" id="annualContribution" min="0" max="200000" value="12000" step="1000">
+                        </div>
+                        <div class="slider-group">
+                            <label for="annualContribution2">
+                                Bijdrage 1 werkt
+                                <span class="value" id="annualContribution2Value">6.000</span> € pj
+                            </label>
+                            <input type="range" id="annualContribution2" min="-200000" max="200000" value="6000" step="1000">
+                        </div>
+                        
+                        <div class="slider-group">
+                            <label for="annualSpending">
+                                Uitgaven 0 werken
+                                <span class="value" id="annualSpendingValue">40.000</span> € pj
+                            </label>
+                            <input type="range" id="annualSpending" min="0" max="200000" value="40000" step="1000">
+                        </div>
+                        <div class="slider-group">
+                            <label for="inflation">
+                                Inflatie
+                                <span class="value" id="inflationValue">2.0</span>%
+                            </label>
+                            <input type="range" id="inflation" min="0" max="10" value="2" step="0.1">
+                        </div>
+                        <!--
+                        <div class="slider-group">
+                            <label for="swr">
+                                Safe Withdrawal Rate (SWR)
+                                <span class="value" id="swrValue">4.0</span>%
+                            </label>
+                            <input type="range" id="swr" min="2" max="7" value="4" step="0.1">
+                        </div>
+                        -->
+                        <div id="extraCostsSection" >
+                            <h3>Extra kosten</h3>
+                            <table id="extraCostsTable">
+                                <thead>
+                                <tr>
+                                    <th>Omschrijving</th>
+                                    <th>Bedrag/jaar (€)</th>
+                                    <th>Startjaar</th>
+                                    <th>Eindjaar</th>
+                                    <th></th>
+                                </tr>
+                                </thead>
+                                <tbody id="extraCostsBody">
+                                </tbody>
+                            </table>
+                            <button id="addCostBtn">+ Voeg kost toe</button>
+                            </div>
+                            
                     </div>
-                    <div class="slider-group">
-                        <label for="portfolioReturns">
-                            Portefeuille rendement
-                            <span class="value" id="portfolioReturnsValue">5.0</span>%
-                        </label>
-                        <input type="range" id="portfolioReturns" min="0" max="15" value="5" step="0.1">
-                    </div>
-                    <div class="slider-group">
-                        <label for="annualContribution">
-                            Jaarlijkse bijdrage 2 werken
-                            <span class="value" id="annualContributionValue">12.000</span> €
-                        </label>
-                        <input type="range" id="annualContribution" min="0" max="200000" value="12000" step="1000">
-                    </div>
-                    <div class="slider-group">
-                        <label for="annualContribution2">
-                            Jaarlijkse bijdrage 1 werkt
-                            <span class="value" id="annualContribution2Value">6.000</span> €
-                        </label>
-                        <input type="range" id="annualContribution2" min="-200000" max="200000" value="6000" step="1000">
-                    </div>
-                   
-                    <div class="slider-group">
-                        <label for="annualSpending">
-                            Jaarlijkse uitgaven 0 werken
-                            <span class="value" id="annualSpendingValue">40.000</span> €
-                        </label>
-                        <input type="range" id="annualSpending" min="0" max="200000" value="40000" step="1000">
-                    </div>
-                    <div class="slider-group">
-                        <label for="inflation">
-                            Inflatie
-                            <span class="value" id="inflationValue">2.0</span>%
-                        </label>
-                        <input type="range" id="inflation" min="0" max="10" value="2" step="0.1">
-                    </div>
-                    <!--
-                    <div class="slider-group">
-                        <label for="swr">
-                            Safe Withdrawal Rate (SWR)
-                            <span class="value" id="swrValue">4.0</span>%
-                        </label>
-                        <input type="range" id="swr" min="2" max="7" value="4" step="0.1">
-                    </div>
-                    -->
-                    <div id="extraCostsSection">
-                        <h3>Extra kosten</h3>
-                        <table id="extraCostsTable">
-                          <thead>
-                            <tr>
-                              <th>Omschrijving</th>
-                              <th>Bedrag/jaar (€)</th>
-                              <th>Startjaar</th>
-                              <th>Eindjaar</th>
-                              <th></th>
-                            </tr>
-                          </thead>
-                          <tbody id="extraCostsBody">
-                          </tbody>
-                        </table>
-                        <button id="addCostBtn">+ Voeg kost toe</button>
-                      </div>
-                      
+                    </details>
                 </div>
-                </details>
             </div>
+           
             
-            <div class="pension-panel">
+            
+            
+            <div class="person2-panel">
                 <details open> 
                     <summary>Persoon 2</summary>
                 
@@ -154,7 +154,7 @@
                 
                 <div class="slider-group">
                     <label for="retirementAge2">
-                        Pensioenleeftijd
+                        Stopleeftijd
                         <span class="value" id="retirementAge2Value">59</span>
                     </label>
                     <input type="range" id="retirementAge2" min="18" max="100" value="59" step="1">
@@ -177,8 +177,8 @@
                 
                 <div class="slider-group">
                     <label for="monthlyPension2">
-                        Maandelijks staatspensioen
-                        <span class="value" id="monthlyPension2Value">1.000</span> €
+                        Staatspensioen
+                        <span class="value" id="monthlyPension2Value">1.000</span> € pm
                     </label>
                     <input type="range" id="monthlyPension2" min="0" max="5000" value="1000" step="50">
                 </div>
@@ -188,7 +188,6 @@
             </div>
         </div>
     </div>
-    
     <script src="script.js"></script>
 </body>
 </html>

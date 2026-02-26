@@ -43,6 +43,11 @@ let extraCosts = []; // array van { description, amount, startAge, endAge }
 
 // Format number with spaces as thousand separators (European style)
 function formatNumber(num) {
+    if (num >= 1000000 || num <= -1000000) {
+        return '€' + (num / 1000000).toFixed(2) + 'M';
+    } else if (num >= 10000 || num <= -1000) {
+        return '€' + (num / 1000).toFixed(0) + 'K';
+    }
     return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
 
@@ -562,8 +567,8 @@ function updateChart() {
                         display: true,
                         text: 'Portefeuille Waarde (€)',
                         font: { 
-                            size: window.innerWidth < 768 ? 10 : 12,
-                            weight: window.innerWidth < 768 ? '400' : '600'
+                            size: window.innerWidth < 768 ? 0 : 12,
+                            weight: '600'
                          },
                         padding: { top: 10, bottom: 10 }
                     },

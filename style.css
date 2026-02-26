@@ -27,22 +27,22 @@ body {
     min-height: calc(100vh - 40px); 
 }
 
-.controls-panel {
+.person1-panel {
     flex: 0 0 260px;
-    padding: 40px;
+    padding: 8px;
     background: #f8f9fa;
     border-right: 1px solid #e9ecef;
 }
 
-.pension-panel {
+.person2-panel {
     flex: 0 0 260px;
-    padding: 40px;
+    padding: 8px;
     background: #f8f9fa;
     border-left: 1px solid #e9ecef;
 }
 
-.controls-panel h2,
-.pension-panel h2 {
+.person1-panel h2,
+.person1-panel h2 {
     font-size: 1.5em;
     margin-bottom: 30px;
     color: #333;
@@ -151,58 +151,35 @@ details summary::after {
     display: none; /* verberg op desktop */
   }
 
-@media (max-width: 1200px) {
-    .main-content {
-        flex-wrap: wrap;
-    }
-    
-    .controls-panel {
-        flex: 1 1 100%;
-        border-right: none;
-        border-bottom: 1px solid #e9ecef;
-        order: 2;
-    }
-    
-    .chart-panel {
-        flex: 1 1 100%;
-        order: 1;
-    }
-    
-    .pension-panel {
-        flex: 1 1 100%;
-        border-left: none;
-        border-top: 1px solid #e9ecef;
-        order: 3;
-    }
-}
-/*
-@media (max-width: 968px) {
-    .controls-panel,
-    .pension-panel {
-        flex: 0 0 100%;
-    }
-    
-    .chart-wrapper,
-    #portfolioChart {
-        height: 400px !important;
-    }
-}
-*/
+
 @media (max-width: 768px) {
     .main-content {
       flex-direction: column;
       height: auto; /* geen vaste hoogte meer */
     }
-    .controls-panel, .chart-panel, .pension-panel {
+    .person1-panel, .common-panel, .person2-panel {
       flex: 0 0 auto;
       width: 100%;
-      padding: 20px;
+      padding: 15px;
       border: none;
       border-bottom: 1px solid #e9ecef;
     }
-    /* Verplaats chart naar boven zodat die direct zichtbaar is */
     .chart-panel {
-      order: -1; 
+        /* De magische truc: haalt de wrapper "weg" voor de lay-out */
+        display: contents; 
+      }
+    /* Verplaats chart naar boven zodat die direct zichtbaar is */
+    .chart-wrapper {
+      order: 1; 
+    }
+    .person1-panel {
+        order: 2; 
+    }
+    .person2-panel {
+        order: 3; 
+    }
+    .common-panel {
+        order: 4; 
     }
     .chart-wrapper {
         height: 300px;
@@ -252,12 +229,7 @@ details summary::after {
   input[type="range"]::-webkit-slider-thumb {
     width: 16px;
     height: 16px;
-  }
-
-  /* Minder padding op de panelen */
-  .controls-panel, .pension-panel, .chart-panel {
-    padding: 15px;
-  }
+  }  
 }
 
 /* In je bestaande CSS: */
@@ -270,6 +242,7 @@ input[type="range"]::-webkit-slider-thumb {
   }
 
 #extraCostsSection {
+    display: none;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
 }
