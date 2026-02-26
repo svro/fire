@@ -44,11 +44,11 @@ let extraCosts = []; // array van { description, amount, startAge, endAge }
 // Format number with spaces as thousand separators (European style)
 function formatNumber(num) {
     if (num >= 1000000 || num <= -1000000) {
-        return '€' + (num / 1000000).toFixed(2) + 'M';
+        return '€ ' + (num / 1000000).toFixed(2) + 'M';
     } else if (num >= 10000 || num <= -1000) {
-        return '€' + (num / 1000).toFixed(0) + 'K';
+        return '€ ' + (num / 1000).toFixed(0) + 'K';
     }
-    return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    return '€ ' + Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
 
 // Calculate portfolio growth and depletion
@@ -525,7 +525,7 @@ function updateChart() {
                             const age1 = data.ages1[idx];
                             const age2 = data.ages2[idx];
                             const ages = [age1 !== undefined ? `P1: ${age1}j` : '', age2 !== undefined ? `P2: ${age2}j` : ''].filter(Boolean).join(' | ');
-                            return `€${formatNumber(context.parsed.y)}  (${ages})`;
+                            return `${formatNumber(context.parsed.y)}  (${ages})`;
                           }
                           
                     }
