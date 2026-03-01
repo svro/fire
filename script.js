@@ -154,7 +154,7 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
     let currentAnnualSpending = annualSpending;
     
     // Add starting point
-    data.years.push( new Date().getYear()-100)
+    data.years.push( new Date().getFullYear()-2000)
     const currentYear = data.years.at(-1); // voor fase 1 en 2
     extraCosts.forEach(cost => {
         if (currentYear >= cost.startYear - 2000 && currentYear <= cost.endYear - 2000) {
@@ -189,9 +189,9 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
         const currentYear = data.years.at(-1) + 1; // voor fase 1 en 2
         extraCosts.forEach(cost => {
             if (currentYear >= cost.startYear - 2000 && currentYear <= cost.endYear - 2000) {
-                cost.amount = cost.amount * Math.pow(1 + inflationRate, currentYear -  data.years[0]);
+                let inflatedCost  = cost.amount * Math.pow(1 + inflationRate, currentYear -  data.years[0]);
                 //console.log(Math.pow(1 + inflationRate, currentYear - (cost.startYear - 2000)));
-                portfolioValue -= cost.amount;
+                portfolioValue -= inflatedCost;
                 if (portfolioValue < 0) portfolioValue = 0;
             }
         });
@@ -231,8 +231,8 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
             const currentYear = data.years.at(-1) + 1; // voor fase 1 en 2
             extraCosts.forEach(cost => {
                 if (currentYear >= cost.startYear - 2000 && currentYear <= cost.endYear - 2000) {
-                    cost.amount = cost.amount * Math.pow(1 + inflationRate, currentYear - data.years[0]);
-                    portfolioValue -= cost.amount;
+                    let inflatedCost = cost.amount * Math.pow(1 + inflationRate, currentYear - data.years[0]);
+                    portfolioValue -= inflatedCost;
                     if (portfolioValue < 0) portfolioValue = 0;
                 }
             });
@@ -317,8 +317,8 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
         const currentYear = data.years.at(-1) + 1;
         extraCosts.forEach(cost => {
             if (currentYear >= cost.startYear - 2000 && currentYear <= cost.endYear - 2000) {
-                cost.amount = cost.amount * Math.pow(1 + inflationRate, currentYear - data.years[0]);
-                portfolioValue -= cost.amount;
+                let inflatedCost = cost.amount * Math.pow(1 + inflationRate, currentYear - data.years[0]);
+                portfolioValue -= inflatedCost;
               if (portfolioValue < 0) portfolioValue = 0;
             }
           });
