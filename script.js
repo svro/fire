@@ -1,3 +1,49 @@
+// 1. Bepaal de standaardtaal op basis van de browser of localStorage
+const userLang = localStorage.getItem('taal') || navigator.language.split('-')[0] || 'nl';
+
+// 2. Initialiseer i18next
+i18next
+  .use(i18nextHttpBackend) // Activeer de plugin om JSON te laden
+  .use(i18nextBrowserLanguageDetector) 
+  .init({
+    //lng: 'nl',             // Start in het Nederlands
+    fallbackLng: 'en',     // Val terug op Engels als NL niet bestaat
+    backend: {
+      // 2. Vertel waar de JSON bestanden staan. {{lng}} wordt automatisch 'nl' of 'en'
+      loadPath: '/locales/{{lng}}.json' 
+    }
+  })
+  .then(function() {
+    // 3. Deze code draait pas zodra de JSON succesvol is gedownload
+    vertaalPagina();
+  });
+
+function vertaalPagina() {
+    // Zoek alle elementen met een data-i18n attribuut in de HTML
+    const elements = document.querySelectorAll('[data-i18n]');
+
+    elements.forEach(el => {
+        const key = el.getAttribute('data-i18n'); // Bijv: 'welkomst_titel'
+        el.innerText = i18next.t(key);            // Haal de tekst uit de JSON en plak het in de HTML
+    });
+}
+
+// 3. Functie om alle teksten in de interface te updaten
+function updateUI() {
+    //document.getElementById('header-title').textContent = i18next.t('titel');
+    
+    // Variabelen doorgeven aan de vertaling
+    //document.getElementById('greeting').textContent = i18next.t('groet', { naam: 'Stijn' });
+  }
+  
+// 4. Taal wijzigen via een dropdown of knop
+function veranderTaal(nieuweTaal) {
+    i18next.changeLanguage(nieuweTaal).then(() => {
+        localStorage.setItem('taal', nieuweTaal);
+        updateUI();
+    });
+}
+
 // Get DOM elements
 const currentAge1Slider = document.getElementById('currentAge1');
 const retirementAge1Slider = document.getElementById('retirementAge1');
@@ -15,9 +61,18 @@ const pensionAgeSlider = document.getElementById('pensionAge');
 const monthlyPensionSlider = document.getElementById('monthlyPension');
 const pensionAge2Slider = document.getElementById('pensionAge2');
 const monthlyPension2Slider = document.getElementById('monthlyPension2');
+const cost1Slider = document.getElementById('cost1');
+const cost1BeginYearSlider = document.getElementById('cost1BeginYear');
+const cost1EndYearSlider = document.getElementById('cost1EndYear');
+const cost2Slider = document.getElementById('cost2');
+const cost2BeginYearSlider = document.getElementById('cost2BeginYear');
+const cost2EndYearSlider = document.getElementById('cost2EndYear');
+const cost3Slider = document.getElementById('cost3');
+const cost3BeginYearSlider = document.getElementById('cost3BeginYear');
+const cost3EndYearSlider = document.getElementById('cost3EndYear');
 //const swrSlider = document.getElementById('swr');
 
-const currentAgeValue1 = document.getElementById('currentAge1Value');
+const currentAge1Value = document.getElementById('currentAge1Value');
 const retirementAge1Value = document.getElementById('retirementAge1Value');
 const endAge1Value = document.getElementById('endAge1Value');
 const currentAge2Value = document.getElementById('currentAge2Value');
@@ -33,6 +88,15 @@ const pensionAgeValue = document.getElementById('pensionAgeValue');
 const monthlyPensionValue = document.getElementById('monthlyPensionValue');
 const pensionAge2Value = document.getElementById('pensionAge2Value');
 const monthlyPension2Value = document.getElementById('monthlyPension2Value');
+const cost1Value = document.getElementById('cost1Value');
+const cost1BeginYearValue = document.getElementById('cost1BeginYearValue');
+const cost1EndYearValue = document.getElementById('cost1EndYearValue');
+const cost2Value = document.getElementById('cost2Value');
+const cost2BeginYearValue = document.getElementById('cost2BeginYearValue');
+const cost2EndYearValue = document.getElementById('cost2EndYearValue');
+const cost3Value = document.getElementById('cost3Value');
+const cost3BeginYearValue = document.getElementById('cost3BeginYearValue');
+const cost3EndYearValue = document.getElementById('cost3EndYearValue');
 //const swrValue = document.getElementById('swrValue');
 
 // Chart setup
@@ -48,7 +112,8 @@ function formatNumber(num) {
     } else if (num >= 10000 || num <= -1000) {
         return '€ ' + (num / 1000).toFixed(0) + 'K';
     }
-    return '€ ' + Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    return '€ ' + (num / 1000).toFixed(1) + 'K';
+    //return '€ ' + Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 }
 
 // Calculate portfolio growth and depletion
@@ -124,8 +189,10 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
         const currentYear = data.years.at(-1) + 1; // voor fase 1 en 2
         extraCosts.forEach(cost => {
             if (currentYear >= cost.startYear - 2000 && currentYear <= cost.endYear - 2000) {
-              portfolioValue -= cost.amount;
-              if (portfolioValue < 0) portfolioValue = 0;
+                cost.amount = cost.amount * Math.pow(1 + inflationRate, currentYear -  data.years[0]);
+                //console.log(Math.pow(1 + inflationRate, currentYear - (cost.startYear - 2000)));
+                portfolioValue -= cost.amount;
+                if (portfolioValue < 0) portfolioValue = 0;
             }
         });
         // Check if FIRE is reached this year
@@ -164,8 +231,9 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
             const currentYear = data.years.at(-1) + 1; // voor fase 1 en 2
             extraCosts.forEach(cost => {
                 if (currentYear >= cost.startYear - 2000 && currentYear <= cost.endYear - 2000) {
-                portfolioValue -= cost.amount;
-                if (portfolioValue < 0) portfolioValue = 0;
+                    cost.amount = cost.amount * Math.pow(1 + inflationRate, currentYear - data.years[0]);
+                    portfolioValue -= cost.amount;
+                    if (portfolioValue < 0) portfolioValue = 0;
                 }
             });
 
@@ -249,7 +317,8 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
         const currentYear = data.years.at(-1) + 1;
         extraCosts.forEach(cost => {
             if (currentYear >= cost.startYear - 2000 && currentYear <= cost.endYear - 2000) {
-              portfolioValue -= cost.amount;
+                cost.amount = cost.amount * Math.pow(1 + inflationRate, currentYear - data.years[0]);
+                portfolioValue -= cost.amount;
               if (portfolioValue < 0) portfolioValue = 0;
             }
           });
@@ -286,58 +355,37 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
 // Update chart
 function updateChart() {
     const currentAge1 = parseInt(currentAge1Slider.value);
-    let retirementAge1 = parseInt(retirementAge1Slider.value);
-    let endAge1 = parseInt(endAge1Slider.value);
+    const retirementAge1 = parseInt(retirementAge1Slider.value);
+    const endAge1 = parseInt(endAge1Slider.value);
     const currentAge2 = parseInt(currentAge2Slider.value);
-    let retirementAge2 = parseInt(retirementAge2Slider.value);
-    let endAge2 = parseInt(endAge2Slider.value);
+    const retirementAge2 = parseInt(retirementAge2Slider.value);
+    const endAge2 = parseInt(endAge2Slider.value);
+    const pensionAge = parseInt(pensionAgeSlider.value);
+    const monthlyPension = parseFloat(monthlyPensionSlider.value);
+    const pensionAge2 = parseInt(pensionAge2Slider.value);
+    const monthlyPension2 = parseFloat(monthlyPension2Slider.value);
     const currentAssets = parseFloat(currentAssetsSlider.value);
     const annualReturn = parseFloat(portfolioReturnsSlider.value);
     const annualSpending = parseFloat(annualSpendingSlider.value);
     const annualContribution = parseFloat(annualContributionSlider.value);
     const annualContribution2 = parseFloat(annualContribution2Slider.value);
     const inflation = parseFloat(inflationSlider.value);
-    const pensionAge = parseInt(pensionAgeSlider.value);
-    const monthlyPension = parseFloat(monthlyPensionSlider.value);
-    const pensionAge2 = parseInt(pensionAge2Slider.value);
-    const monthlyPension2 = parseFloat(monthlyPension2Slider.value);
-    //const swr = parseFloat(swrSlider.value);
-    
-    // Ensure retirement age is greater than current age
-    if (retirementAge1 <= currentAge1) {
-        retirementAge1 = currentAge1 + 1;
-        retirementAge1Slider.value = retirementAge1;
-        retirementAge1Value.textContent = retirementAge1;
-    }
-    
-    // Ensure end age is greater than retirement age
-    if (endAge1 <= retirementAge1) {
-        endAge1 = retirementAge1 + 1;
-        endAge1Slider.value = endAge1;
-        endAge1Value.textContent = endAge1;
-    }
-    
-    if (retirementAge2 <= currentAge2) {
-        retirementAge2 = currentAge2 + 1;
-        retirementAge2Slider.value = retirementAge2;
-        retirementAge2Value.textContent = retirementAge2;
-    }
-    if (endAge2 <= retirementAge2) {
-        endAge2 = retirementAge2 + 1;
-        endAge2Slider.value = endAge2;
-        endAge2Value.textContent = endAge2;
-    }
-
      // Lees alle rijen uit de tabel
      extraCosts = [];    
-     document.querySelectorAll('#extraCostsBody tr').forEach(row => {
-     const inputs = row.querySelectorAll('input');
      extraCosts.push({
-         description: inputs[0].value,
-         amount: parseFloat(inputs[1].value) || 0,
-         startYear: parseInt(inputs[2].value) || 2026,
-         endYear: parseInt(inputs[3].value) || 2026
+         amount: parseFloat(cost1Slider.value) || 0,
+         startYear: parseInt(cost1BeginYearSlider.value) || 2026,
+         endYear: parseInt(cost1EndYearSlider.value) || 2026
      });
+     extraCosts.push({
+         amount: parseFloat(cost2Slider.value) || 0,
+         startYear: parseInt(cost2BeginYearSlider.value) || 2026,
+         endYear: parseInt(cost2EndYearSlider.value) || 2026
+     });
+     extraCosts.push({
+         amount: parseFloat(cost3Slider.value) || 0,
+         startYear: parseInt(cost3BeginYearSlider.value) || 2026,
+         endYear: parseInt(cost3EndYearSlider.value) || 2026
      });
 
     const data = calculatePortfolioGrowth(
@@ -525,7 +573,8 @@ function updateChart() {
                             const age1 = data.ages1[idx];
                             const age2 = data.ages2[idx];
                             const ages = [age1 !== undefined ? `P1: ${age1}j` : '', age2 !== undefined ? `P2: ${age2}j` : ''].filter(Boolean).join(' | ');
-                            return `${formatNumber(context.parsed.y)}  (${ages})`;
+                            return `€ ${context.parsed.y.toFixed(2)}  (${ages})`;
+                            //'€ ' + (num / 1000).toFixed(1) + 'K';'€ ' + (num / 1000).toFixed(1) + 'K';
                           }
                           
                     }
@@ -578,12 +627,7 @@ function updateChart() {
                     ticks: {
                         font: { size: window.innerWidth < 768 ? 10 : 12 },
                         callback: function(value) {
-                            if (value >= 1000000) {
-                              return '€' + (value / 1000000).toFixed(1) + 'M';
-                            } else if (value >= 1000) {
-                              return '€' + (value / 1000).toFixed(0) + 'K';
-                            }
-                            return '€' + formatNumber(value);
+                            return formatNumber(value);
                           }
                     }
                 }
@@ -618,6 +662,15 @@ function updateValueDisplays() {
     monthlyPensionValue.textContent = formatNumber(monthlyPensionSlider.value);
     pensionAge2Value.textContent = pensionAge2Slider.value;
     monthlyPension2Value.textContent = formatNumber(monthlyPension2Slider.value);
+    cost1Value.textContent = formatNumber(cost1Slider.value);
+    cost1BeginYearValue.textContent = cost1BeginYearSlider.value;
+    cost1EndYearValue.textContent = cost1EndYearSlider.value;
+    cost2Value.textContent = formatNumber(cost2Slider.value);
+    cost2BeginYearValue.textContent = cost2BeginYearSlider.value;
+    cost2EndYearValue.textContent = cost2EndYearSlider.value;
+    cost3Value.textContent = formatNumber(cost3Slider.value);
+    cost3BeginYearValue.textContent = cost3BeginYearSlider.value;
+    cost3EndYearValue.textContent = cost3EndYearSlider.value;
     //swrValue.textContent = parseFloat(swrSlider.value).toFixed(1);
 }
 
@@ -629,6 +682,10 @@ currentAge1Slider.addEventListener('input', function() {
         retirementAge1Slider.value = parseInt(this.value) + 1;
         retirementAge1Value.textContent = retirementAge1Slider.value;
     }
+    if (parseInt(endAge1Slider.value) <= parseInt(retirementAge1Slider.value)) {
+        endAge1Slider.value = parseInt(retirementAge1Slider.value) + 1;
+        endAge1Value.textContent = endAge1Slider.value;
+    }
     updateChart();
 });
 
@@ -638,6 +695,10 @@ currentAge2Slider.addEventListener('input', function() {
     if (parseInt(retirementAge2Slider.value) <= parseInt(this.value)) {
         retirementAge2Slider.value = parseInt(this.value) + 1;
         retirementAge2Value.textContent = retirementAge2Slider.value;
+    }
+    if (parseInt(endAge2Slider.value) <= parseInt(retirementAge2Slider.value)) {
+        endAge2Slider.value = parseInt(retirementAge2Slider.value) + 1;
+        endAge2Value.textContent = endAge2Slider.value;
     }
     updateChart();
 });
@@ -741,6 +802,74 @@ monthlyPension2Slider.addEventListener('input', function() {
     updateChart();
 });
 
+cost1Slider.addEventListener('input', function() {
+    updateValueDisplays();
+    updateChart();
+});
+
+cost1BeginYearSlider.addEventListener('input', function() {    
+    if (parseInt(this.value) > parseInt(cost1EndYearSlider.value)) {
+        cost1EndYearSlider.value = parseInt(this.value);
+        cost1EndYearValue.textContent = cost1EndYearSlider.value;
+    }
+    updateValueDisplays();
+    updateChart();
+});
+
+cost1EndYearSlider.addEventListener('input', function() {
+    if (parseInt(this.value) < parseInt(cost1BeginYearSlider.value)) {
+        cost1EndYearSlider.value = parseInt(cost1BeginYearSlider.value);
+        cost1EndYearValue.textContent = cost1BeginYearSlider.value;
+    }
+    updateValueDisplays();
+    updateChart();
+});
+
+cost2Slider.addEventListener('input', function() {
+    updateValueDisplays();
+    updateChart();
+});
+
+cost2BeginYearSlider.addEventListener('input', function() {    
+    if (parseInt(this.value) > parseInt(cost2EndYearSlider.value)) {
+        cost2EndYearSlider.value = parseInt(this.value);
+        cost2EndYearValue.textContent = cost2EndYearSlider.value;
+    }
+    updateValueDisplays();
+    updateChart();
+});
+
+cost2EndYearSlider.addEventListener('input', function() {
+    if (parseInt(this.value) < parseInt(cost2BeginYearSlider.value)) {
+        cost2EndYearSlider.value = parseInt(cost2BeginYearSlider.value);
+        cost2EndYearValue.textContent = cost2BeginYearSlider.value;
+    }
+    updateValueDisplays();
+    updateChart();
+});
+
+cost3Slider.addEventListener('input', function() {
+    updateValueDisplays();
+    updateChart();
+});
+
+cost3BeginYearSlider.addEventListener('input', function() {
+    if (parseInt(this.value) > parseInt(cost3EndYearSlider.value)) {
+        cost3EndYearSlider.value = parseInt(this.value);
+        cost3EndYearValue.textContent = cost3EndYearSlider.value;
+    }
+    updateValueDisplays();
+    updateChart();
+});
+
+cost3EndYearSlider.addEventListener('input', function() {
+    if (parseInt(this.value) < parseInt(cost3BeginYearSlider.value)) {
+        cost3EndYearSlider.value = parseInt(cost3BeginYearSlider.value);
+        cost3EndYearValue.textContent = cost3BeginYearSlider.value;
+    }
+    updateValueDisplays();
+    updateChart();
+});
 /*
 swrSlider.addEventListener('input', function() {
     updateValueDisplays();
@@ -772,66 +901,12 @@ document.addEventListener("DOMContentLoaded", function() {
         slider.addEventListener('input', function(event) {
             localStorage.setItem(slider.id, event.target.value);
         });
-    });
-
-    const savedCosts = localStorage.getItem('extraCosts');
-    if (savedCosts) {
-        JSON.parse(savedCosts).forEach(cost => {
-            addCostRow(cost.description, cost.amount, cost.startYear, cost.endYear, true);
-        });
-        updateChart();
-    }
+    });    
     
 });
 
-function saveExtraCosts() {
-    const costs = [];
-    document.querySelectorAll('#extraCostsBody tr').forEach(row => {
-      let inputs = row.querySelectorAll('input');
-      costs.push({
-        description: inputs[0].value,
-        amount: inputs[1].value,
-        startYear: inputs[2].value,
-        endYear: inputs[3].value
-      });
-    });
-    localStorage.setItem('extraCosts', JSON.stringify(costs));
-  }
-
-  function addCostRow(description = '', amount = 0, startYear = 2026, endYear = 2026, confirmed = false) {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-    <td><input type="text" value="${description}" placeholder="bv. Auto" /></td>
-    <td><input type="number" value="${amount}" min="0" step="500" /></td>
-    <td><input type="number" value="${startYear}" min="2000" max="2100" /></td>
-    <td><input type="number" value="${endYear}" min="2000" max="2100" /></td>
-    <td><button class="confirmBtn">✓</button><button class="removeBtn">✕</button></td>
-    `;
-    const confirmBtn = row.querySelector('.confirmBtn');
-    if (confirmed) confirmBtn.disabled = true; 
-    confirmBtn.addEventListener('click', () => {
-        saveExtraCosts();        
-        updateChart();
-        confirmBtn.disabled = true;  // ← via variabele
-    });
-
-    row.querySelector('.removeBtn').addEventListener('click', () => {
-        row.remove();
-        saveExtraCosts();
-        updateChart();
-    });
-  // Herbereken bij elke wijziging
-  document.getElementById('extraCostsBody').appendChild(row);  
-  }
-  
-
 //ocalStorage.removeItem('extraCosts');
 //localStorage.clear();
-
-document.getElementById('addCostBtn').addEventListener('click', () => {
-    addCostRow();
-});
-
 
 
 // Initialize
