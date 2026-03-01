@@ -16,6 +16,9 @@ i18next
   .then(function() {
     // 3. Deze code draait pas zodra de JSON succesvol is gedownload
     vertaalPagina();
+    // Initialize
+    updateValueDisplays();
+    updateChart();
   });
 
 function vertaalPagina() {
@@ -415,6 +418,7 @@ function updateChart() {
     
     
     // Create datasets with null values for the parts we don't want to show
+    /*
     const growthData = data.years.map((year, idx) => {
         const growthIdx = data.growthYears.indexOf(year);
         return growthIdx >= 0 ? data.growthValues[growthIdx] : null;
@@ -429,7 +433,40 @@ function updateChart() {
         const withdrawalIdx = data.withdrawalYears.indexOf(year);
         return withdrawalIdx >= 0 ? data.withdrawalValues[withdrawalIdx] : null;
     });
-    
+    */
+
+    // Nieuw: Check of we reële of nominale bedragen moeten tonen
+    const showRealValues = document.getElementById('showRealValues') ? document.getElementById('showRealValues').checked : false;
+    const inflationRate = inflation / 100;
+    const startYear = data.years[0]; // Het huidige jaar (bijv. 26)
+
+    // Hulpfunctie om een toekomstig bedrag om te rekenen naar vandaag
+    const applyInflationAdjustment = (value, year) => {
+        if (value === null || value === undefined) return null;
+        if (!showRealValues) return value; // Doe niks als checkbox uit staat
+        const yearsPassed = year - startYear;
+        return value / Math.pow(1 + inflationRate, yearsPassed);
+    };
+
+    // Create datasets with null values for the parts we don't want to show
+    const growthData = data.years.map((year, idx) => {
+        const growthIdx = data.growthYears.indexOf(year);
+        let val = growthIdx >= 0 ? data.growthValues[growthIdx] : null;
+        return applyInflationAdjustment(val, year);
+    });
+
+    const oneWorksData = data.years.map((year, idx) => {
+        const idx2 = data.oneWorksYears.indexOf(year);
+        let val = idx2 >= 0 ? data.oneWorksValues[idx2] : null;
+        return applyInflationAdjustment(val, year);
+    });
+
+    const withdrawalData = data.years.map((year, idx) => {
+        const withdrawalIdx = data.withdrawalYears.indexOf(year);
+        let val = withdrawalIdx >= 0 ? data.withdrawalValues[withdrawalIdx] : null;
+        return applyInflationAdjustment(val, year);
+    });
+
     // Create FIRE indicator dataset (point at FIRE age)
     const fireData = data.ages1.map(() => null);
     if (data.fireAge !== null) {
@@ -584,7 +621,7 @@ function updateChart() {
                 x: {
                     title: {
                         display: window.innerWidth < 768 ? false: true,
-                        text: 'Datum (in jaren na 2000)',
+                        text: i18next.t('dateInYears'),
                         font: { 
                             size: window.innerWidth < 768 ? 10 : 12,
                             weight: window.innerWidth < 768 ? '400' : '600'
@@ -614,7 +651,7 @@ function updateChart() {
                 y: {
                     title: {
                         display: window.innerWidth < 768 ? false: true,
-                        text: 'Portefeuille Waarde (€)',
+                        text: i18next.t('portfolioValue') + ' (€)',
                         font: { 
                             size: 12,
                             weight: '600'
@@ -870,6 +907,11 @@ cost3EndYearSlider.addEventListener('input', function() {
     updateValueDisplays();
     updateChart();
 });
+
+document.getElementById('showRealValues').addEventListener('change', function() {
+    updateChart();
+});
+
 /*
 swrSlider.addEventListener('input', function() {
     updateValueDisplays();
@@ -909,6 +951,4 @@ document.addEventListener("DOMContentLoaded", function() {
 //localStorage.clear();
 
 
-// Initialize
-updateValueDisplays();
-updateChart();
+

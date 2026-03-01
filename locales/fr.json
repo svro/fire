@@ -6,7 +6,7 @@
     "endAge1": "Âge final",
     "pensionAge1": "Âge de la pension",
     "monthlyPension1": "Pension",
-    "everyMonth": "par mois",
+    "everyMonth": "/mois",
     "person2": "Personne 2",
     "commonSettings": "Paramètres communs",
     "currentAssets": "Actifs actuels",
@@ -14,12 +14,15 @@
     "annualContribution2Work": "Contribution (2 actifs)",
     "annualContribution1Work": "Contribution (1 actif)",
     "annualContribution0Work": "Dépenses (0 actif)",
-    "everyYear": "par an",
+    "everyYear": "pa",
     "inflation": "Inflation",
+    "showRealValues": "Afficher en pouvoir d'achat d'aujourd'hui",
     "cost1": "Supplément 1",
     "cost2": "Supplément 2",
     "cost3": "Supplément 3",
     "beginyear": "Année",
-    "endyear": "Année d’arrêt"
+    "endyear": "Année d’arrêt",
+    "portfolioValue": "Valeur du Portefeuille",
+    "dateInYears": "Date (en années après 2000) avec âges"
   }
   

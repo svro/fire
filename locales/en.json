@@ -6,7 +6,7 @@
     "endAge1": "End age",
     "pensionAge1": "Pension age",
     "monthlyPension1": "Pension",
-    "everyMonth": "per month",
+    "everyMonth": "/mo",
     "person2": "Person 2",
     "commonSettings": "Shared settings",
     "currentAssets": "Current assets",
@@ -14,11 +14,14 @@
     "annualContribution2Work": "Contribution (2 working)",
     "annualContribution1Work": "Contribution (1 working)",
     "annualContribution0Work": "Expenses (0 working)",
-    "everyYear": "per year",
+    "everyYear": "p.a.",
     "inflation": "Inflation",
+    "showRealValues": "Show in today's purchasing power",
     "cost1": "Extra 1",
     "cost2": "Extra 2",
     "cost3": "Extra 3",
     "beginyear": "Year",
-    "endyear": "End year"
+    "endyear": "End year",
+    "portfolioValue": "Portfolio Value",
+    "dateInYears": "Date (in years after 2000) with ages"
   }

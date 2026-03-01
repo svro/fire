@@ -16,10 +16,13 @@
     "annualContribution0Work": "Ausgaben (0 arbeiten)",
     "everyYear": "pro Jahr",
     "inflation": "Inflation",
+    "showRealValues": "In heutiger Kaufkraft anzeigen",
     "cost1": "Zusatz 1",
     "cost2": "Zusatz 2",
     "cost3": "Zusatz 3",
     "beginyear": "Jahr",
-    "endyear": "Stoppjahr"
+    "endyear": "Stoppjahr",
+    "portfolioValue": "Portfoliowert",
+    "dateInYears": "Datum (in Jahren nach 2000) mit Alter"
   }
   

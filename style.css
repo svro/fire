@@ -49,7 +49,7 @@ body {
     margin-bottom: 35px;
 }
 
-.slider-group label, .slider-group-sameline label {
+.slider-group label, .slider-group-sameline label, .slider-group span, .slider-group-sameline span {
     display: block;
     font-size: 1em;
     font-weight: 500;
@@ -206,7 +206,7 @@ input[type="range"] {
     margin-bottom: 10px;
   }
 
-  .slider-group label, .slider-group-sameline label {
+  .slider-group label, .slider-group-sameline label, .slider-group span, .slider-group-sameline span {
     font-size: 0.8em;
     white-space: nowrap;
     flex: 0 0 auto; /* label krijgt enkel de ruimte die het nodig heeft */
@@ -217,10 +217,6 @@ input[type="range"] {
     font-weight: 700;
     color: #667eea;
     /*flex: 0 0 45px;*/ /* vaste breedte zodat slider niet springt */    
-  }
-
-  input[type="range"] {
-    /*flex: 1;*/
   }
 
   input[type="range"]::-webkit-slider-thumb {
