@@ -24,8 +24,9 @@
     "beginyear": "Year",
     "endyear": "End year",
     "portfolioValue": "Portfolio Value",
-    "dateInYears": "Date (in years after 2000) with ages",
+    "dateInYears": "Date with ages",
     "2_work": "2 work",
     "1_works": "1 work",
-    "0_work": "0 work"
+    "0_work": "0 work",
+    "yearShort": "y"
   }

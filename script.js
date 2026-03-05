@@ -73,7 +73,6 @@ const cost2EndYearSlider = document.getElementById('cost2EndYear');
 const cost3Slider = document.getElementById('cost3');
 const cost3BeginYearSlider = document.getElementById('cost3BeginYear');
 const cost3EndYearSlider = document.getElementById('cost3EndYear');
-//const swrSlider = document.getElementById('swr');
 
 const currentAge1Value = document.getElementById('currentAge1Value');
 const retirementAge1Value = document.getElementById('retirementAge1Value');
@@ -100,7 +99,6 @@ const cost2EndYearValue = document.getElementById('cost2EndYearValue');
 const cost3Value = document.getElementById('cost3Value');
 const cost3BeginYearValue = document.getElementById('cost3BeginYearValue');
 const cost3EndYearValue = document.getElementById('cost3EndYearValue');
-//const swrValue = document.getElementById('swrValue');
 
 // Chart setup
 const ctx = document.getElementById('portfolioChart').getContext('2d');
@@ -120,7 +118,7 @@ function formatNumber(num) {
 }
 
 // Calculate portfolio growth and depletion
-function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentAge2, retirementAge2, endAge2, currentAssets, annualReturn, annualSpending, annualContribution, annualContribution2, inflation, pensionAge, monthlyPension, pensionAge2, monthlyPension2/*, swr*/) {
+function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentAge2, retirementAge2, endAge2, currentAssets, annualReturn, annualSpending, annualContribution, annualContribution2, inflation, pensionAge, monthlyPension, pensionAge2, monthlyPension2) {
     const yearsToRetirement1 = retirementAge1 - currentAge1;
     const yearsToRetirement2 = retirementAge2 - currentAge2;
     const yearsAfterRetirement1 = endAge1 - retirementAge1;
@@ -142,25 +140,21 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
     
     let portfolioValue = currentAssets;
     const annualReturnRate = annualReturn / 100;
-    const monthlyReturnRate = Math.pow(1+annualReturnRate, 1/12)-1;
     const inflationRate = inflation / 100;
     
     
     // Calculate FIRE number: net spending when both pensions are active
     const annualPension1 = monthlyPension * 12;
     const annualPension2 = monthlyPension2 * 12;
-    const totalAnnualPension = annualPension1 + annualPension2;
-    const netAnnualSpending = Math.max(0, annualSpending /*- totalAnnualPension*/);
-    //const fireNumber = netAnnualSpending / (swr / 100);
     
     // Start with base values
     let currentAnnualSpending = annualSpending;
     
     // Add starting point
-    data.years.push( new Date().getFullYear()-2000)
+    data.years.push( new Date().getFullYear())
     const currentYear = data.years.at(-1); // voor fase 1 en 2
     extraCosts.forEach(cost => {
-        if (currentYear >= cost.startYear - 2000 && currentYear <= cost.endYear - 2000) {
+        if (currentYear >= cost.startYear  && currentYear <= cost.endYear) {
             portfolioValue -= cost.amount;
             if (portfolioValue < 0) portfolioValue = 0;
         }
@@ -171,15 +165,6 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
     data.growthYears.push(new Date().getYear()-100);
     data.growthValues.push(portfolioValue);
     
-    /*
-    // Check if already FIRE
-    if (portfolioValue >= fireNumber) {
-        data.fireAge = currentAge1;
-        data.fireValue = portfolioValue;
-    }*/
-    
-    // Calculate for each year until retirement (growth phase)
-    // Internally calculate monthly, but only store yearly values
     let currentAnnualContribution = annualContribution
     for (let year = 1; year <= Math.min(yearsToRetirement1, yearsToRetirement2); year++) {
         // Apply inflation to contribution at the start of each year
@@ -191,20 +176,13 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
        
         const currentYear = data.years.at(-1) + 1; // voor fase 1 en 2
         extraCosts.forEach(cost => {
-            if (currentYear >= cost.startYear - 2000 && currentYear <= cost.endYear - 2000) {
+            if (currentYear >= cost.startYear && currentYear <= cost.endYear) {
                 let inflatedCost  = cost.amount * Math.pow(1 + inflationRate, currentYear -  data.years[0]);
                 //console.log(Math.pow(1 + inflationRate, currentYear - (cost.startYear - 2000)));
                 portfolioValue -= inflatedCost;
                 if (portfolioValue < 0) portfolioValue = 0;
             }
         });
-        // Check if FIRE is reached this year
-        /*
-        if (data.fireAge === null && portfolioValue >= fireNumber) {
-            //alert(portfolioValue + ' ' + fireNumber);
-            data.fireAge = currentAge1 + year;
-            data.fireValue = portfolioValue;
-        }*/
         
         // Store yearly value
         data.years.push(data.years.at(-1)+1)
@@ -233,7 +211,7 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
 
             const currentYear = data.years.at(-1) + 1; // voor fase 1 en 2
             extraCosts.forEach(cost => {
-                if (currentYear >= cost.startYear - 2000 && currentYear <= cost.endYear - 2000) {
+                if (currentYear >= cost.startYear && currentYear <= cost.endYear) {
                     let inflatedCost = cost.amount * Math.pow(1 + inflationRate, currentYear - data.years[0]);
                     portfolioValue -= inflatedCost;
                     if (portfolioValue < 0) portfolioValue = 0;
@@ -265,7 +243,6 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
     data.withdrawalValues.push(portfolioValue);
     
     // Calculate for each year after retirement until end age (withdrawal phase)
-    // Internally calculate monthly, but only store yearly values
     let duration = Math.max(endAge1-data.ages1.at(-1),endAge2-data.ages2.at(-1))
     let startAge1 = data.ages1.at(-1)
     let startAge2 = data.ages2.at(-1)
@@ -307,19 +284,19 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
                 const totalYears = currentYearAge2 - currentAge2;
                 monthlyPension2ThisYear = monthlyPension2 * Math.pow(1 + inflationRate, totalYears);
             }
-        }
-        const monthlyPensionThisYear = monthlyPension1ThisYear + monthlyPension2ThisYear;
-        
-        // Convert annual spending to monthly spending for this year
-        const monthlySpending = currentAnnualSpending / 12;
-        // Net monthly withdrawal = spending - total pension (both persons)
-        const netMonthlyWithdrawal = monthlySpending - monthlyPensionThisYear;
-        
-        portfolioValue = portfolioValue * (1 + annualReturnRate) - netMonthlyWithdrawal*12       
+        }        
+        const annualPension1ThisYear = monthlyPension1ThisYear * 12;
+        const annualPension2ThisYear = monthlyPension2ThisYear * 12;
+        const totalAnnualPensionThisYear = annualPension1ThisYear + annualPension2ThisYear;
+
+        // Tip: laat dit negatief kunnen zijn; dan “stort” pensioenoverschot terug in de portefeuille
+        const netAnnualWithdrawal = currentAnnualSpending - totalAnnualPensionThisYear;
+
+        portfolioValue = portfolioValue * (1 + annualReturnRate) - netAnnualWithdrawal;
 
         const currentYear = data.years.at(-1) + 1;
         extraCosts.forEach(cost => {
-            if (currentYear >= cost.startYear - 2000 && currentYear <= cost.endYear - 2000) {
+            if (currentYear >= cost.startYear && currentYear <= cost.endYear) {
                 let inflatedCost = cost.amount * Math.pow(1 + inflationRate, currentYear - data.years[0]);
                 portfolioValue -= inflatedCost;
               if (portfolioValue < 0) portfolioValue = 0;
@@ -407,33 +384,12 @@ function updateChart() {
         pensionAge,
         monthlyPension,
         pensionAge2,
-        monthlyPension2/*,
-        swr*/
+        monthlyPension2
     );
     
     if (portfolioChart) {
         portfolioChart.destroy();
-    }
-
-    
-    
-    // Create datasets with null values for the parts we don't want to show
-    /*
-    const growthData = data.years.map((year, idx) => {
-        const growthIdx = data.growthYears.indexOf(year);
-        return growthIdx >= 0 ? data.growthValues[growthIdx] : null;
-    });
-
-    const oneWorksData = data.years.map((year, idx) => {
-        const growthIdx = data.oneWorksYears.indexOf(year);
-        return growthIdx >= 0 ? data.oneWorksValues[growthIdx] : null;
-    });
-    
-    const withdrawalData = data.years.map((year, idx) => {
-        const withdrawalIdx = data.withdrawalYears.indexOf(year);
-        return withdrawalIdx >= 0 ? data.withdrawalValues[withdrawalIdx] : null;
-    });
-    */
+    }    
 
     // Nieuw: Check of we reële of nominale bedragen moeten tonen
     const showRealValues = document.getElementById('showRealValues') ? document.getElementById('showRealValues').checked : false;
@@ -542,6 +498,7 @@ function updateChart() {
         });
     }
     
+    
     portfolioChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -581,35 +538,17 @@ function updateChart() {
                     bodyFont: {
                         size: 13
                     },
-                    callbacks: {
-                        /*
-                        label: function(context) {
-                            if (context.dataset.label === 'FIRE bereikt') {
-                                return 'FIRE bereikt: €' + formatNumber(context.parsed.y) + ' (leeftijd ' + data.fireAge + ')';
-                            }
-                            return 'Waarde: €' + formatNumber(context.parsed.y);
-                        },
-                        afterLabel: function(context) {
-                            if (context.dataset.label === 'FIRE bereikt') {
-                                //const totalAnnualPension = monthlyPension * 12 + monthlyPension2 * 12;
-                                //const netSpending = Math.max(0,annualSpending - totalAnnualPension);
-                                const netSpending = Math.max(0, annualSpending);
-                                const fireNumber = netSpending / (swr / 100);
-                                return 'FIRE number: €' + formatNumber(fireNumber);
-                            }
-                            return '';
-                        }
-                        */
+                    callbacks: {                        
                         title: function(contexts) {
                             const idx = contexts[0].dataIndex;
                             const year = data.years[idx];
-                            return `20${year}`;
+                            return `${year}`;
                         },
                         label: function(context) {
                             const idx = context.dataIndex;
                             const age1 = data.ages1[idx];
                             const age2 = data.ages2[idx];
-                            const ages = [age1 !== undefined ? `P1: ${age1}j` : '', age2 !== undefined ? `P2: ${age2}j` : ''].filter(Boolean).join(' | ');
+                            const ages = [age1 !== undefined ? i18next.t("person1") + `: ${age1}` + i18next.t('yearShort') : '', age2 !== undefined ? i18next.t("person2") + `: ${age2}` + i18next.t('yearShort') : ''].filter(Boolean).join(' | ');
                             return `€ ${context.parsed.y.toFixed(2)}  (${ages})`;
                             //'€ ' + (num / 1000).toFixed(1) + 'K';'€ ' + (num / 1000).toFixed(1) + 'K';
                           }
@@ -621,7 +560,7 @@ function updateChart() {
                 x: {
                     title: {
                         display: window.innerWidth < 768 ? false: true,
-                        text: i18next.t('dateInYears'),
+                        text:  i18next.t('dateInYears'),
                         font: { 
                             size: window.innerWidth < 768 ? 10 : 12,
                             weight: window.innerWidth < 768 ? '400' : '600'
@@ -632,18 +571,23 @@ function updateChart() {
                         color: 'rgba(0, 0, 0, 0.05)'
                     },
                     ticks: {
-                        font: {
-                            size: window.innerWidth < 768 ? 10 : 12
-                        },
+                        font: { size: window.innerWidth < 768 ? 10 : 12 },
+                        autoSkipPadding: window.innerWidth < 768 ? 2 : 10,
                         callback: function(value, index) {
                             const year = data.years[index];
                             const age1 = data.ages1[index];
                             const age2 = data.ages2[index];
-                            if (year === undefined) return '';
+                            if (year === undefined) return '';                           
+                            const isMobile = window.innerWidth < 768;
+
+                            if (isMobile) {
+                                return `${year}`; // 1 regel => veel minder breedte
+                            }
+
                             return [
-                                `${year}`, 
-                                age1 !== undefined ? `${age1}j`:'',
-                                age2 !== undefined ? `${age2}j`:''
+                                `${year}`,
+                                age1 !== undefined ? `${age1}` + i18next.t('yearShort') : '',
+                                age2 !== undefined ? `${age2}` + i18next.t('yearShort') : ''
                             ];
                         }
                     }
@@ -707,8 +651,7 @@ function updateValueDisplays() {
     cost2EndYearValue.textContent = cost2EndYearSlider.value;
     cost3Value.textContent = formatNumber(cost3Slider.value);
     cost3BeginYearValue.textContent = cost3BeginYearSlider.value;
-    cost3EndYearValue.textContent = cost3EndYearSlider.value;
-    //swrValue.textContent = parseFloat(swrSlider.value).toFixed(1);
+    cost3EndYearValue.textContent = cost3EndYearSlider.value;    
 }
 
 // Event listeners
@@ -912,13 +855,6 @@ document.getElementById('showRealValues').addEventListener('change', function() 
     updateChart();
 });
 
-/*
-swrSlider.addEventListener('input', function() {
-    updateValueDisplays();
-    updateChart();
-});
-*/
-
 document.addEventListener("DOMContentLoaded", function() {
     
     // Selecteer alle sliders op de pagina
@@ -946,9 +882,3 @@ document.addEventListener("DOMContentLoaded", function() {
     });    
     
 });
-
-//ocalStorage.removeItem('extraCosts');
-//localStorage.clear();
-
-
-

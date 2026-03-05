@@ -24,9 +24,10 @@
     "beginyear": "Jahr",
     "endyear": "Stoppjahr",
     "portfolioValue": "Portfoliowert",
-    "dateInYears": "Datum (in Jahren nach 2000) mit Alter",
+    "dateInYears": "Datum mit Alter",
     "2_work": "2 werke",
     "1_works": "2 werke",
-    "0_work": "0 werke"
+    "0_work": "0 werke",
+    "yearShort": "J"
   }
   

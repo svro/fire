@@ -24,9 +24,10 @@
     "beginyear": "Année",
     "endyear": "Année d’arrêt",
     "portfolioValue": "Valeur du Portefeuille",
-    "dateInYears": "Date (en années après 2000) avec âges",
+    "dateInYears": "Date avec âges",
     "2_work": "2 travail",
     "1_works": "1 travail",
-    "0_work": "0 travail"
+    "0_work": "0 travail",
+    "yearShort": "a"
   }
   

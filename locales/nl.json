@@ -23,8 +23,9 @@
   "beginyear": "Jaar",
   "endyear": "Stopjaar",
   "portfolioValue": "Portefeuille Waarde",
-  "dateInYears": "Datum (in jaren na 2000) met leeftijden",
+  "dateInYears": "Datum met leeftijden",
   "2_work": "2 werken er",
   "1_works": "1 werkt er",
-  "0_work": "0 werkt er"
+  "0_work": "0 werkt er",
+  "yearShort": "j"
 }
