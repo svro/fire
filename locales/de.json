@@ -1,20 +1,20 @@
 {
     "titel": "FIRE Übersicht",
-    "person1": "Person 1",
+    "person1": "Du",
     "currentAge1": "Alter",
     "retirementAge1": "Eintrittsalter",
     "endAge1": "Endalter",
     "pensionAge1": "Rentenalter",
     "monthlyPension1": "Rente",
-    "everyMonth": "pro Monat",
-    "person2": "Person 2",
+    "everyMonth": "/Monat",
+    "person2": "Partner(in)",
     "commonSettings": "Gemeinsame Einstellungen",
     "currentAssets": "Aktuelles Vermögen",
     "portfolioReturns": "Rendite",
     "annualContribution2Work": "Beitrag (2 arbeiten)",
     "annualContribution1Work": "Beitrag (1 arbeitet)",
     "annualContribution0Work": "Ausgaben (0 arbeiten)",
-    "everyYear": "pro Jahr",
+    "everyYear": "p.a.",
     "inflation": "Inflation",
     "showRealValues": "In heutiger Kaufkraft anzeigen",
     "extras": "Extras",
@@ -24,6 +24,9 @@
     "beginyear": "Jahr",
     "endyear": "Stoppjahr",
     "portfolioValue": "Portfoliowert",
-    "dateInYears": "Datum (in Jahren nach 2000) mit Alter"
+    "dateInYears": "Datum (in Jahren nach 2000) mit Alter",
+    "2_work": "2 werke",
+    "1_works": "2 werke",
+    "0_work": "0 werke"
   }
   

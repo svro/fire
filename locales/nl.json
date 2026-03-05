@@ -1,13 +1,13 @@
 {
   "titel": "FIRE inzicht",
-  "person1": "Persoon 1",
+  "person1": "Jij",
   "currentAge1": "Leeftijd",
   "retirementAge1": "Stopleeftijd",
   "endAge1": "Eindleeftijd",
   "pensionAge1": "Pensionleeftijd",
   "monthlyPension1": "Pensioen",
   "everyMonth": "p.m.",
-  "person2": "Persoon 2",
+  "person2": "Partner",
   "commonSettings": "Gezamenlijke instellingen",
   "currentAssets": "Vermogen nu",
   "portfolioReturns": "Rendement",
@@ -23,5 +23,8 @@
   "beginyear": "Jaar",
   "endyear": "Stopjaar",
   "portfolioValue": "Portefeuille Waarde",
-  "dateInYears": "Datum (in jaren na 2000) met leeftijden"
+  "dateInYears": "Datum (in jaren na 2000) met leeftijden",
+  "2_work": "2 werken er",
+  "1_works": "1 werkt er",
+  "0_work": "0 werkt er"
 }

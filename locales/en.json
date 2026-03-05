@@ -1,13 +1,13 @@
 {
     "titel": "FIRE insight",
-    "person1": "Person 1",
+    "person1": "You",
     "currentAge1": "Age",
     "retirementAge1": "Retirement age",
     "endAge1": "End age",
     "pensionAge1": "Pension age",
     "monthlyPension1": "Pension",
     "everyMonth": "/mo",
-    "person2": "Person 2",
+    "person2": "Partner ",
     "commonSettings": "Shared settings",
     "currentAssets": "Current assets",
     "portfolioReturns": "Return",
@@ -24,5 +24,8 @@
     "beginyear": "Year",
     "endyear": "End year",
     "portfolioValue": "Portfolio Value",
-    "dateInYears": "Date (in years after 2000) with ages"
+    "dateInYears": "Date (in years after 2000) with ages",
+    "2_work": "2 work",
+    "1_works": "1 work",
+    "0_work": "0 work"
   }

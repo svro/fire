@@ -478,7 +478,7 @@ function updateChart() {
     
     const datasets = [
         {
-            label: '2 werken',
+            label: i18next.t('2_work'),
             data: growthData,
             borderColor: '#667eea',
             backgroundColor: 'rgba(102, 126, 234, 0.1)',
@@ -493,7 +493,7 @@ function updateChart() {
             spanGaps: false
         },
         {
-            label: '1 werkt',
+            label:  i18next.t('1_works'),
             data: oneWorksData,
             borderColor: 'green',
             backgroundColor: 'rgba(141, 182, 147, 0.1)',
@@ -508,7 +508,7 @@ function updateChart() {
             spanGaps: false
         },
         {
-            label: '0 werken',
+            label:  i18next.t('0_work'),
             data: withdrawalData,
             borderColor: '#e74c3c',
             backgroundColor: 'rgba(231, 76, 60, 0.1)',
