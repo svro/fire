@@ -162,7 +162,7 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
     data.ages1.push(currentAge1);
     data.ages2.push(currentAge2);
     data.values.push(portfolioValue);
-    data.growthYears.push(new Date().getYear()-100);
+    data.growthYears.push(data.years[0]);
     data.growthValues.push(portfolioValue);
     
     let currentAnnualContribution = annualContribution
@@ -178,7 +178,6 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
         extraCosts.forEach(cost => {
             if (currentYear >= cost.startYear && currentYear <= cost.endYear) {
                 let inflatedCost  = cost.amount * Math.pow(1 + inflationRate, currentYear -  data.years[0]);
-                //console.log(Math.pow(1 + inflationRate, currentYear - (cost.startYear - 2000)));
                 portfolioValue -= inflatedCost;
                 if (portfolioValue < 0) portfolioValue = 0;
             }
@@ -189,7 +188,7 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
         data.ages1.push(data.ages1.at(-1)+1);
         data.ages2.push(data.ages2.at(-1)+1);
         data.values.push(portfolioValue);
-        data.growthYears.push(data.growthYears.at(-1)+1);
+        data.growthYears.push(data.years.at(-1));
         data.growthValues.push(portfolioValue);
     }
 
@@ -224,7 +223,7 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
                 data.ages1.push(data.ages1.at(-1)+1);
                 data.ages2.push(data.ages2.at(-1)+1);
                 data.values.push(portfolioValue);
-                data.oneWorksYears.push(data.oneWorksYears.at(-1)+1);
+                data.oneWorksYears.push(data.years.at(-1));
                 data.oneWorksValues.push(portfolioValue);
                 break;
             }
@@ -316,7 +315,7 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
             if (data.ages1.at(-1) < endAge1) data.ages1.push(data.ages1.at(-1)+1);
             if (data.ages2.at(-1) < endAge2) data.ages2.push(data.ages2.at(-1)+1);
             data.values.push(portfolioValue);
-            data.withdrawalYears.push(data.withdrawalYears.at(-1)+1);
+            data.withdrawalYears.push(data.years.at(-1));
             data.withdrawalValues.push(portfolioValue);
             break;
         }
@@ -325,7 +324,7 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
         if (data.ages1.at(-1) < endAge1) data.ages1.push(data.ages1.at(-1)+1);
         if (data.ages2.at(-1) < endAge2) data.ages2.push(data.ages2.at(-1)+1);
         data.values.push(portfolioValue);
-        data.withdrawalYears.push(data.withdrawalYears.at(-1)+1);
+        data.withdrawalYears.push(data.years.at(-1));
         data.withdrawalValues.push(portfolioValue);
     }
     
