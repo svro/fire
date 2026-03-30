@@ -106,6 +106,9 @@ body {
 .main-content {
     display: grid;
     grid-template-columns: minmax(250px, 280px) minmax(0, 1fr) minmax(250px, 280px);
+    grid-template-areas:
+        "person1 chart person2"
+        "person1 settings person2";
     gap: 24px;
     align-items: start;
     min-height: calc(100vh - 48px);
@@ -115,22 +118,32 @@ body {
 .person1-panel,
 .person2-panel,
 .chart-panel,
+.settings-panel,
 .common-panel,
 .extra-panel {
     min-width: 0;
 }
 
+.person1-panel {
+    grid-area: person1;
+}
+
 .chart-panel {
+    grid-area: chart;
+}
+
+.person2-panel {
+    grid-area: person2;
+}
+
+.settings-panel {
+    grid-area: settings;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-areas:
-        "chart chart"
-        "common extra";
     gap: 24px;
 }
 
 .chart-wrapper {
-    grid-area: chart;
     position: relative;
     min-height: 470px;
     padding: 20px;
@@ -167,14 +180,6 @@ body {
 .chart-wrapper canvas {
     position: relative;
     z-index: 1;
-}
-
-.common-panel {
-    grid-area: common;
-}
-
-.extra-panel {
-    grid-area: extra;
 }
 
 .person1-panel > details,
@@ -356,19 +361,16 @@ table {
 
     .main-content {
         grid-template-columns: 1fr;
+        grid-template-areas:
+            "chart"
+            "person1"
+            "person2"
+            "settings";
         min-height: auto;
     }
 
-    .chart-panel {
-        order: 1;
-    }
-
-    .person1-panel {
-        order: 2;
-    }
-
-    .person2-panel {
-        order: 3;
+    .settings-panel {
+        grid-template-columns: 1fr;
     }
 
     .chart-wrapper {
@@ -407,12 +409,8 @@ table {
         padding: 16px;
     }
 
-    .chart-panel {
+    .settings-panel {
         grid-template-columns: 1fr;
-        grid-template-areas:
-            "chart"
-            "common"
-            "extra";
         gap: 16px;
     }
 
