@@ -1,13 +1,26 @@
-// 1. Bepaal de standaardtaal op basis van de browser of localStorage
-const userLang = localStorage.getItem('taal') || navigator.language.split('-')[0] || 'nl';
+// 1. Bepaal de standaardtaal op basis van localStorage of de browser
+const supportedLanguages = ['nl', 'en', 'fr', 'de'];
+const storedLanguage = localStorage.getItem('taal') || localStorage.getItem('i18nextLng');
+const browserLanguage = navigator.language.split('-')[0];
+const userLang = supportedLanguages.includes(storedLanguage)
+    ? storedLanguage
+    : supportedLanguages.includes(browserLanguage)
+        ? browserLanguage
+        : 'nl';
 
 // 2. Initialiseer i18next
 i18next
   .use(i18nextHttpBackend) // Activeer de plugin om JSON te laden
   .use(i18nextBrowserLanguageDetector) 
   .init({
-    //lng: 'nl',             // Start in het Nederlands
+    lng: userLang,          // Gebruik eerst de opgeslagen of ondersteunde browsertaal
     fallbackLng: 'en',     // Val terug op Engels als NL niet bestaat
+    supportedLngs: supportedLanguages,
+    detection: {
+      order: ['localStorage', 'navigator'],
+      lookupLocalStorage: 'taal',
+      caches: ['localStorage']
+    },
     backend: {
       // 2. Vertel waar de JSON bestanden staan. {{lng}} wordt automatisch 'nl' of 'en'
       loadPath: '/locales/{{lng}}.json' 
@@ -15,13 +28,14 @@ i18next
   })
   .then(function() {
     // 3. Deze code draait pas zodra de JSON succesvol is gedownload
-    vertaalPagina();
     // Initialize
     updateValueDisplays();
-    updateChart();
+    updateUI();
   });
 
 function vertaalPagina() {
+    document.documentElement.lang = i18next.resolvedLanguage || userLang;
+
     // Zoek alle elementen met een data-i18n attribuut in de HTML
     const elements = document.querySelectorAll('[data-i18n]');
 
@@ -31,9 +45,23 @@ function vertaalPagina() {
     });
 }
 
+const languageButtons = document.querySelectorAll('[data-language-option]');
+
+function updateLanguageSwitcher() {
+    const activeLanguage = i18next.resolvedLanguage || i18next.language || userLang;
+
+    languageButtons.forEach(button => {
+        const isActive = button.dataset.languageOption === activeLanguage;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', String(isActive));
+    });
+}
+
 // 3. Functie om alle teksten in de interface te updaten
 function updateUI() {
-    //document.getElementById('header-title').textContent = i18next.t('titel');
+    vertaalPagina();
+    updateLanguageSwitcher();
+    updateChart();
     
     // Variabelen doorgeven aan de vertaling
     //document.getElementById('greeting').textContent = i18next.t('groet', { naam: 'Stijn' });
@@ -43,9 +71,16 @@ function updateUI() {
 function veranderTaal(nieuweTaal) {
     i18next.changeLanguage(nieuweTaal).then(() => {
         localStorage.setItem('taal', nieuweTaal);
+        localStorage.removeItem('i18nextLng');
         updateUI();
     });
 }
+
+languageButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        veranderTaal(button.dataset.languageOption);
+    });
+});
 
 // Get DOM elements
 const currentAge1Slider = document.getElementById('currentAge1');
@@ -115,6 +150,43 @@ function formatNumber(num) {
     }
     return '€ ' + (num / 1000).toFixed(1) + 'K';
     //return '€ ' + Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+}
+
+function getNumberLocale() {
+    const activeLanguage = i18next.resolvedLanguage || i18next.language || userLang;
+
+    if (activeLanguage === 'nl') return 'nl-BE';
+    if (activeLanguage === 'fr') return 'fr-BE';
+    if (activeLanguage === 'de') return 'de-DE';
+    return 'en-BE';
+}
+
+function formatEuroAmount(num) {
+    return new Intl.NumberFormat(getNumberLocale(), {
+        style: 'currency',
+        currency: 'EUR',
+        maximumFractionDigits: 0
+    }).format(Number(num));
+}
+
+function formatCompactEuroAmount(num) {
+    const value = Number(num);
+    const absoluteValue = Math.abs(value);
+
+    if (absoluteValue >= 1000000) {
+        return '\u20AC ' + new Intl.NumberFormat(getNumberLocale(), {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1
+        }).format(value / 1000000) + 'M';
+    }
+
+    if (absoluteValue >= 10000) {
+        return '\u20AC ' + new Intl.NumberFormat(getNumberLocale(), {
+            maximumFractionDigits: 0
+        }).format(value / 1000) + 'K';
+    }
+
+    return formatEuroAmount(value);
 }
 
 // Calculate portfolio growth and depletion
@@ -302,12 +374,6 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
             }
           });
 
-         // Stop if portfolio goes negative
-         if (portfolioValue <= 0) {
-            portfolioValue = 0;
-            break;
-        }
-        
         // Store yearly value
         if (portfolioValue <= 0) {
             portfolioValue = 0;
@@ -482,7 +548,7 @@ function updateChart() {
     // Add FIRE indicator if FIRE is reached
     if (data.fireAge !== null && fireData.some(v => v !== null)) {
         datasets.push({
-            label: 'FIRE bereikt',
+            label: i18next.t('fireReached'),
             data: fireData,
             borderColor: '#27ae60',
             backgroundColor: '#27ae60',
@@ -607,7 +673,7 @@ function updateChart() {
                     ticks: {
                         font: { size: window.innerWidth < 768 ? 10 : 12 },
                         callback: function(value) {
-                            return formatNumber(value);
+                            return formatCompactEuroAmount(value);
                           }
                     }
                 }
@@ -632,23 +698,23 @@ function updateValueDisplays() {
     currentAge2Value.textContent = currentAge2Slider.value;
     retirementAge2Value.textContent = retirementAge2Slider.value;
     endAge2Value.textContent = endAge2Slider.value;
-    currentAssetsValue.textContent = formatNumber(currentAssetsSlider.value);
+    currentAssetsValue.textContent = formatEuroAmount(currentAssetsSlider.value);
     portfolioReturnsValue.textContent = parseFloat(portfolioReturnsSlider.value).toFixed(1);
     inflationValue.textContent = parseFloat(inflationSlider.value).toFixed(1);
-    annualSpendingValue.textContent = formatNumber(annualSpendingSlider.value);
-    annualContributionValue.textContent = formatNumber(annualContributionSlider.value);
-    annualContribution2Value.textContent = formatNumber(annualContribution2Slider.value);    
+    annualSpendingValue.textContent = formatEuroAmount(annualSpendingSlider.value);
+    annualContributionValue.textContent = formatEuroAmount(annualContributionSlider.value);
+    annualContribution2Value.textContent = formatEuroAmount(annualContribution2Slider.value);    
     pensionAgeValue.textContent = pensionAgeSlider.value;
-    monthlyPensionValue.textContent = formatNumber(monthlyPensionSlider.value);
+    monthlyPensionValue.textContent = formatEuroAmount(monthlyPensionSlider.value);
     pensionAge2Value.textContent = pensionAge2Slider.value;
-    monthlyPension2Value.textContent = formatNumber(monthlyPension2Slider.value);
-    cost1Value.textContent = formatNumber(cost1Slider.value);
+    monthlyPension2Value.textContent = formatEuroAmount(monthlyPension2Slider.value);
+    cost1Value.textContent = formatEuroAmount(cost1Slider.value);
     cost1BeginYearValue.textContent = cost1BeginYearSlider.value;
     cost1EndYearValue.textContent = cost1EndYearSlider.value;
-    cost2Value.textContent = formatNumber(cost2Slider.value);
+    cost2Value.textContent = formatEuroAmount(cost2Slider.value);
     cost2BeginYearValue.textContent = cost2BeginYearSlider.value;
     cost2EndYearValue.textContent = cost2EndYearSlider.value;
-    cost3Value.textContent = formatNumber(cost3Slider.value);
+    cost3Value.textContent = formatEuroAmount(cost3Slider.value);
     cost3BeginYearValue.textContent = cost3BeginYearSlider.value;
     cost3EndYearValue.textContent = cost3EndYearSlider.value;    
 }

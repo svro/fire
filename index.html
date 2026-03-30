@@ -4,15 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title data-i18n="titel"></title>
+    <meta name="theme-color" content="#16332d">
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/i18next/dist/umd/i18next.min.js"></script>
     <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script>
     <script src="https://unpkg.com/i18next-browser-languagedetector/i18nextBrowserLanguageDetector.min.js"></script>
-    
+    </head>
 <body>
     <div class="container">
+        <div class="app-toolbar">
+            <div class="language-switcher" role="group" aria-label="Language switcher">
+                <button type="button" class="language-option" data-language-option="nl">NL</button>
+                <button type="button" class="language-option" data-language-option="en">EN</button>
+                <button type="button" class="language-option" data-language-option="fr">FR</button>
+                <button type="button" class="language-option" data-language-option="de">DE</button>
+            </div>
+        </div>
         <div class="main-content">            
             <div class="person1-panel">
                 <details open> 
