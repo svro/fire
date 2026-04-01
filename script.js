@@ -2028,7 +2028,7 @@ function updateChart() {
                 y: {
                     title: {
                         display: isMobile ? false : true,
-                        text: i18next.t('portfolioValue') + ' (â‚¬)',
+                        text: i18next.t('portfolioValue') + ' (€)',
                         font: {
                             size: 12,
                             weight: '600'
@@ -2189,7 +2189,7 @@ function updateChart() {
                     stacked: true,
                     title: {
                         display: isMobile ? false : true,
-                        text: i18next.t('cashflowAxisLabel') + ' (â‚¬)',
+                        text: i18next.t('cashflowAxisLabel') + ' (€)',
                         font: {
                             size: 12,
                             weight: '600'
