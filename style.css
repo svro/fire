@@ -130,6 +130,56 @@ body {
 
 .chart-panel {
     grid-area: chart;
+    display: grid;
+    gap: 18px;
+}
+
+.chart-view-switcher {
+    display: none;
+}
+
+.chart-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.chart-card-heading {
+    display: grid;
+    gap: 4px;
+}
+
+.chart-card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text);
+}
+
+.chart-card-summary {
+    font-size: 0.84rem;
+    color: var(--muted);
+    line-height: 1.35;
+}
+
+.analysis-panel {
+    display: grid;
+    gap: 14px;
+    margin-top: 14px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface-muted);
+}
+
+.analysis-advanced-settings {
+    display: grid;
+    gap: 12px;
+}
+
+.analysis-advanced-settings.is-hidden {
+    display: none;
 }
 
 .person2-panel {
@@ -144,42 +194,61 @@ body {
 }
 
 .chart-wrapper {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
     position: relative;
-    min-height: 470px;
+    height: 470px;
     padding: 20px;
     border-radius: var(--radius-lg);
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(244, 247, 245, 0.98) 100%);
+    background: #ffffff;
     border: 1px solid rgba(255, 255, 255, 0.82);
     box-shadow: var(--shadow-md);
     overflow: hidden;
 }
 
+.chart-wrapper--cashflow {
+    height: 320px;
+}
+
 .chart-wrapper::before {
-    content: "";
-    position: absolute;
-    inset: auto auto -80px -40px;
-    width: 240px;
-    height: 240px;
-    border-radius: 50%;
-    background: rgba(29, 95, 82, 0.08);
-    filter: blur(10px);
+    content: none;
 }
 
 .chart-wrapper::after {
-    content: "";
-    position: absolute;
-    inset: 18px 18px auto auto;
-    width: 140px;
-    height: 140px;
-    border-radius: 50%;
-    background: rgba(201, 177, 131, 0.12);
-    filter: blur(6px);
+    content: none;
+}
+
+.chart-canvas-shell {
+    position: relative;
+    min-height: 0;
 }
 
 .chart-wrapper canvas {
-    position: relative;
+    position: absolute;
+    inset: 0;
     z-index: 1;
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.chart-view-button {
+    min-height: 42px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.78);
+    color: var(--muted);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.chart-view-button.is-active {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+    color: #ffffff;
+    box-shadow: 0 10px 18px rgba(29, 95, 82, 0.18);
 }
 
 .person1-panel > details,
@@ -340,6 +409,228 @@ input[type="checkbox"] {
     accent-color: var(--accent);
 }
 
+.extra-costs-toolbar {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.extra-cost-preset-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.preset-button,
+.secondary-action-button,
+.segmented-option,
+.remove-cost-button {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--accent-strong);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.preset-button,
+.secondary-action-button {
+    min-height: 44px;
+    padding: 10px 14px;
+    box-shadow: 0 10px 20px rgba(24, 50, 45, 0.06);
+}
+
+.preset-button:hover,
+.preset-button:focus-visible,
+.secondary-action-button:hover,
+.secondary-action-button:focus-visible,
+.segmented-option:hover,
+.segmented-option:focus-visible,
+.remove-cost-button:hover,
+.remove-cost-button:focus-visible {
+    background: var(--accent-soft);
+    outline: none;
+}
+
+.secondary-action-button {
+    justify-self: start;
+}
+
+.extra-costs-empty {
+    padding: 14px 16px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+    color: var(--muted);
+    background: rgba(255, 255, 255, 0.56);
+}
+
+.extra-costs-empty.is-hidden {
+    display: none;
+}
+
+.extra-costs-list {
+    display: grid;
+    gap: 12px;
+}
+
+.extra-cost-item {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface-muted);
+    overflow: hidden;
+}
+
+.extra-cost-item > summary {
+    padding: 14px 16px;
+}
+
+.extra-cost-item[open] > summary {
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.extra-cost-summary-main {
+    display: grid;
+    gap: 6px;
+}
+
+.extra-cost-title {
+    font-size: 0.97rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.extra-cost-meta {
+    font-size: 0.84rem;
+    color: var(--muted);
+}
+
+.extra-cost-body {
+    display: grid;
+    gap: 14px;
+    padding: 16px;
+}
+
+.extra-cost-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.extra-cost-grid .field-group:first-child {
+    grid-column: 1 / -1;
+}
+
+.field-group {
+    display: grid;
+    gap: 8px;
+}
+
+.field-label {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.field-group input[type="text"],
+.field-group input[type="number"],
+.field-group select {
+    width: 100%;
+    min-height: 44px;
+    padding: 11px 14px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: #ffffff;
+    color: var(--text);
+    font: inherit;
+}
+
+.number-stepper {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    gap: 8px;
+    align-items: center;
+}
+
+.number-stepper--amount {
+    grid-template-columns: 52px minmax(0, 1fr) 52px;
+}
+
+.stepper-button {
+    appearance: none;
+    -webkit-appearance: none;
+    min-height: 44px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: #ffffff;
+    color: var(--accent-strong);
+    font: inherit;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.stepper-button:hover,
+.stepper-button:focus-visible {
+    background: var(--accent-soft);
+    outline: none;
+}
+
+.stepper-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.field-group input[type="text"]:focus,
+.field-group input[type="number"]:focus,
+.field-group select:focus {
+    border-color: rgba(29, 95, 82, 0.45);
+    outline: 2px solid rgba(29, 95, 82, 0.12);
+    outline-offset: 0;
+}
+
+.field-group input[disabled],
+.field-group select[disabled] {
+    background: rgba(255, 255, 255, 0.58);
+    color: var(--muted);
+}
+
+.segmented-control {
+    display: inline-grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.segmented-option {
+    min-height: 42px;
+    padding: 10px 12px;
+}
+
+.segmented-option.is-active {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+    color: #ffffff;
+    border-color: transparent;
+    box-shadow: 0 10px 18px rgba(29, 95, 82, 0.2);
+}
+
+.extra-cost-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.remove-cost-button {
+    min-height: 40px;
+    padding: 8px 14px;
+}
+
 #extraCostsSection {
     display: none;
     overflow-x: auto;
@@ -423,9 +714,42 @@ table {
     }
 
     .chart-wrapper {
-        min-height: 300px;
+        height: 300px;
         padding: 14px;
         border-radius: 18px;
+    }
+
+    .chart-wrapper--cashflow {
+        height: 280px;
+    }
+
+    .chart-view-switcher {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .chart-panel[data-mobile-view="portfolio"] .chart-wrapper--cashflow,
+    .chart-panel[data-mobile-view="cashflow"] .chart-wrapper--portfolio {
+        display: none;
+    }
+
+    .chart-card-header {
+        margin-bottom: 10px;
+    }
+
+    .chart-card-title {
+        font-size: 0.92rem;
+    }
+
+    .chart-card-summary {
+        font-size: 0.78rem;
+    }
+
+    .analysis-panel {
+        gap: 12px;
+        margin-top: 12px;
+        padding: 12px;
     }
 
     .slider-group,
@@ -449,6 +773,24 @@ table {
     .slider-group .value,
     .slider-group-sameline .value {
         font-size: 0.9rem;
+    }
+
+    .extra-cost-preset-grid,
+    .extra-cost-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .secondary-action-button {
+        width: 100%;
+        justify-self: stretch;
+    }
+
+    .extra-cost-item > summary {
+        padding: 12px 14px;
+    }
+
+    .extra-cost-body {
+        padding: 14px;
     }
 
     input[type="range"] {

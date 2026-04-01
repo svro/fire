@@ -56,8 +56,31 @@
                 </details>
             </div>
             <div class="chart-panel">
-                <div class="chart-wrapper">
-                    <canvas id="portfolioChart"></canvas>
+                <div class="chart-view-switcher" role="tablist" aria-label="Chart views">
+                    <button type="button" class="chart-view-button is-active" data-chart-view="portfolio" data-i18n="chartTabPortfolio"></button>
+                    <button type="button" class="chart-view-button" data-chart-view="cashflow" data-i18n="chartTabCashflow"></button>
+                </div>
+                <div class="chart-wrapper chart-wrapper--portfolio">
+                    <div class="chart-card-header">
+                        <div class="chart-card-heading">
+                            <h3 class="chart-card-title" data-i18n="portfolioChartTitle"></h3>
+                            <p class="chart-card-summary" id="portfolioChartSummary"></p>
+                        </div>
+                    </div>
+                    <div class="chart-canvas-shell">
+                        <canvas id="portfolioChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-wrapper chart-wrapper--cashflow">
+                    <div class="chart-card-header">
+                        <div class="chart-card-heading">
+                            <h3 class="chart-card-title" data-i18n="cashflowChartTitle"></h3>
+                            <p class="chart-card-summary" id="cashflowChartSummary"></p>
+                        </div>
+                    </div>
+                    <div class="chart-canvas-shell">
+                        <canvas id="cashflowChart"></canvas>
+                    </div>
                 </div>
             </div>
             <div class="person2-panel">
@@ -132,49 +155,55 @@
                         <div class="slider-group-sameline">
                             <label for="showRealValues" data-i18n="showRealValues"></label>
                             <input type="checkbox" id="showRealValues" checked>
-                        </div>                                                                                                          
+                        </div>
+                        <div class="analysis-panel">
+                            <div class="field-group">
+                                <span class="field-label" data-i18n="analysisModeLabel"></span>
+                                <select id="analysisMode">
+                                    <option value="deterministic" data-i18n="analysisModeDeterministic"></option>
+                                    <option value="monte-carlo" data-i18n="analysisModeMonteCarlo"></option>
+                                    <option value="stress-bear" data-i18n="analysisModeStressBear"></option>
+                                    <option value="stress-inflation" data-i18n="analysisModeStressInflation"></option>
+                                    <option value="stress-extra-cost" data-i18n="analysisModeStressExtraCost"></option>
+                                    <option value="stress-pension" data-i18n="analysisModeStressPension"></option>
+                                </select>
+                            </div>
+                            <div class="analysis-advanced-settings" id="analysisAdvancedSettings">
+                                <div class="slider-group-sameline">
+                                    <label for="simulationCount" data-i18n="simulationCount"></label>
+                                    <span class="value" id="simulationCountValue">500</span>
+                                    <input type="range" id="simulationCount" min="250" max="1000" value="500" step="250">
+                                </div>
+                                <div class="slider-group-sameline">
+                                    <label for="returnVolatility" data-i18n="returnVolatility"></label>
+                                    <span class="value" id="returnVolatilityValue">12.0</span>%
+                                    <input type="range" id="returnVolatility" min="4" max="25" value="12" step="0.5">
+                                </div>
+                                <div class="slider-group-sameline">
+                                    <label for="inflationVolatility" data-i18n="inflationVolatility"></label>
+                                    <span class="value" id="inflationVolatilityValue">1.0</span>%
+                                    <input type="range" id="inflationVolatility" min="0" max="4" value="1" step="0.1">
+                                </div>
+                            </div>
+                        </div>
                     </details>
                 </div>
                 <div class="extra-panel">
                     <details open> 
-                        <summary data-i18n="extras"></summary>                    
-                        <div class="slider-group-sameline">
-                            <label for="cost1" data-i18n="cost1"></label><span class="value" id="cost1Value">0</span>
-                            <input type="range" id="cost1" min="0" max="100000" value="0" step="1000">                            
+                        <summary data-i18n="extras"></summary>
+                        <div class="extra-costs-toolbar">
+                            <div class="extra-cost-preset-grid">
+                                <button type="button" class="preset-button" data-extra-cost-preset="car" data-i18n="presetCar"></button>
+                                <button type="button" class="preset-button" data-extra-cost-preset="studies" data-i18n="presetStudies"></button>
+                                <button type="button" class="preset-button" data-extra-cost-preset="mortgage" data-i18n="presetMortgage"></button>
+                                <button type="button" class="preset-button" data-extra-cost-preset="renovation" data-i18n="presetRenovation"></button>
+                                <button type="button" class="preset-button" data-extra-cost-preset="healthcare" data-i18n="presetHealthcare"></button>
+                                <button type="button" class="preset-button" data-extra-cost-preset="travel" data-i18n="presetTravel"></button>
+                            </div>
+                            <button type="button" class="secondary-action-button" id="addCustomCostButton" data-i18n="addCustomCost"></button>
                         </div>
-                        <div class="slider-group-sameline">
-                            <label for="cost1BeginYear" data-i18n="beginyear"></label>
-                            <span class="value" id="cost1BeginYearValue">2026</span>
-                            <input type="range" id="cost1BeginYear" min="2026" max="2070" value="2026" step="1">
-                            <label for="cost1EndYear"  data-i18n="endyear"></label>
-                            <span class="value" id="cost1EndYearValue">2026</span>
-                            <input type="range" id="cost1EndYear" min="2026" max="2070" value="2026" step="1">
-                        </div>
-                        <div class="slider-group-sameline">
-                            <label for="cost2" data-i18n="cost2"></label>
-                            <span class="value" id="cost2Value">0</span>
-                            <input type="range" id="cost2" min="0" max="100000" value="0" step="1000">                            
-                        </div>
-                        <div class="slider-group-sameline">
-                            <label for="cost2BeginYear" data-i18n="beginyear"></label>
-                            <span class="value" id="cost2BeginYearValue">2026</span>
-                            <input type="range" id="cost2BeginYear" min="2026" max="2070" value="2026" step="1">
-                            <label for="cost2EndYear" data-i18n="endyear"></label>
-                            <span class="value" id="cost2EndYearValue">2026</span>
-                            <input type="range" id="cost2EndYear" min="2026" max="2070" value="2026" step="1">
-                        </div> 
-                        <div class="slider-group-sameline">
-                            <label for="cost3" data-i18n="cost3"></label>
-                            <span class="value" id="cost3Value">0</span>
-                            <input type="range" id="cost3" min="0" max="100000" value="0" step="1000">                            
-                        </div>
-                        <div class="slider-group-sameline">
-                            <label for="cost3BeginYear" data-i18n="beginyear"></label>
-                            <span class="value" id="cost3BeginYearValue">2026</span>
-                            <input type="range" id="cost3BeginYear" min="2026" max="2070" value="2026" step="1">
-                            <label for="cost3EndYear" data-i18n="endyear"></label><span class="value" id="cost3EndYearValue">2026</span>                            
-                            <input type="range" id="cost3EndYear" min="2026" max="2070" value="2026" step="1">
-                        </div>                          
+                        <p class="extra-costs-empty" id="extraCostsEmptyState" data-i18n="extraCostsEmpty"></p>
+                        <div class="extra-costs-list" id="extraCostsList"></div>
                     </details>
                 </div>
             </div>

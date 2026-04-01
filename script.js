@@ -61,6 +61,10 @@ function updateLanguageSwitcher() {
 function updateUI() {
     vertaalPagina();
     updateLanguageSwitcher();
+    renderExtraCosts();
+    toggleAnalysisSettings();
+    setChartMobileView(activeChartView);
+    updateValueDisplays();
     updateChart();
     
     // Variabelen doorgeven aan de vertaling
@@ -99,15 +103,20 @@ const pensionAgeSlider = document.getElementById('pensionAge');
 const monthlyPensionSlider = document.getElementById('monthlyPension');
 const pensionAge2Slider = document.getElementById('pensionAge2');
 const monthlyPension2Slider = document.getElementById('monthlyPension2');
-const cost1Slider = document.getElementById('cost1');
-const cost1BeginYearSlider = document.getElementById('cost1BeginYear');
-const cost1EndYearSlider = document.getElementById('cost1EndYear');
-const cost2Slider = document.getElementById('cost2');
-const cost2BeginYearSlider = document.getElementById('cost2BeginYear');
-const cost2EndYearSlider = document.getElementById('cost2EndYear');
-const cost3Slider = document.getElementById('cost3');
-const cost3BeginYearSlider = document.getElementById('cost3BeginYear');
-const cost3EndYearSlider = document.getElementById('cost3EndYear');
+const showRealValuesCheckbox = document.getElementById('showRealValues');
+const analysisModeSelect = document.getElementById('analysisMode');
+const simulationCountSlider = document.getElementById('simulationCount');
+const returnVolatilitySlider = document.getElementById('returnVolatility');
+const inflationVolatilitySlider = document.getElementById('inflationVolatility');
+const analysisAdvancedSettings = document.getElementById('analysisAdvancedSettings');
+const extraCostsList = document.getElementById('extraCostsList');
+const extraCostsEmptyState = document.getElementById('extraCostsEmptyState');
+const addCustomCostButton = document.getElementById('addCustomCostButton');
+const extraCostPresetButtons = document.querySelectorAll('[data-extra-cost-preset]');
+const chartPanel = document.querySelector('.chart-panel');
+const chartViewButtons = document.querySelectorAll('[data-chart-view]');
+const portfolioChartSummary = document.getElementById('portfolioChartSummary');
+const cashflowChartSummary = document.getElementById('cashflowChartSummary');
 
 const currentAge1Value = document.getElementById('currentAge1Value');
 const retirementAge1Value = document.getElementById('retirementAge1Value');
@@ -125,21 +134,25 @@ const pensionAgeValue = document.getElementById('pensionAgeValue');
 const monthlyPensionValue = document.getElementById('monthlyPensionValue');
 const pensionAge2Value = document.getElementById('pensionAge2Value');
 const monthlyPension2Value = document.getElementById('monthlyPension2Value');
-const cost1Value = document.getElementById('cost1Value');
-const cost1BeginYearValue = document.getElementById('cost1BeginYearValue');
-const cost1EndYearValue = document.getElementById('cost1EndYearValue');
-const cost2Value = document.getElementById('cost2Value');
-const cost2BeginYearValue = document.getElementById('cost2BeginYearValue');
-const cost2EndYearValue = document.getElementById('cost2EndYearValue');
-const cost3Value = document.getElementById('cost3Value');
-const cost3BeginYearValue = document.getElementById('cost3BeginYearValue');
-const cost3EndYearValue = document.getElementById('cost3EndYearValue');
+const simulationCountValue = document.getElementById('simulationCountValue');
+const returnVolatilityValue = document.getElementById('returnVolatilityValue');
+const inflationVolatilityValue = document.getElementById('inflationVolatilityValue');
 
 // Chart setup
 const ctx = document.getElementById('portfolioChart').getContext('2d');
+const cashflowCtx = document.getElementById('cashflowChart').getContext('2d');
 let portfolioChart = null;
+let cashflowChart = null;
 
-let extraCosts = []; // array van { description, amount, startAge, endAge }
+const EXTRA_COSTS_STORAGE_KEY = 'fireExtraCosts';
+const SHOW_REAL_VALUES_STORAGE_KEY = 'showRealValues';
+const CHART_VIEW_STORAGE_KEY = 'activeChartView';
+const ANALYSIS_MODE_STORAGE_KEY = 'analysisMode';
+const EXTRA_COST_YEAR_MIN = new Date().getFullYear();
+const EXTRA_COST_YEAR_MAX = EXTRA_COST_YEAR_MIN + 60;
+
+let extraCosts = []; // array van { id, preset, label, type, amount, startYear, endYear }
+let activeChartView = localStorage.getItem(CHART_VIEW_STORAGE_KEY) || 'portfolio';
 
 // Format number with spaces as thousand separators (European style)
 function formatNumber(num) {
@@ -189,12 +202,604 @@ function formatCompactEuroAmount(num) {
     return formatEuroAmount(value);
 }
 
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function getExtraCostPresetLabel(preset) {
+    const presetKeyByType = {
+        car: 'presetCar',
+        studies: 'presetStudies',
+        mortgage: 'presetMortgage',
+        renovation: 'presetRenovation',
+        healthcare: 'presetHealthcare',
+        travel: 'presetTravel',
+        other: 'addCustomCost'
+    };
+
+    return i18next.t(presetKeyByType[preset] || 'addCustomCost');
+}
+
+function getStudiesLabel() {
+    const nextIndex = extraCosts.filter(cost => cost.preset === 'studies').length + 1;
+    return `${getExtraCostPresetLabel('studies')} ${nextIndex}`;
+}
+
+function getDefaultExtraCostLabel(preset) {
+    if (preset === 'studies') {
+        return getStudiesLabel();
+    }
+
+    if (preset === 'other') {
+        return `${i18next.t('extras')} ${extraCosts.length + 1}`;
+    }
+
+    return getExtraCostPresetLabel(preset);
+}
+
+function createExtraCost(preset = 'other') {
+    const type = preset === 'studies' || preset === 'mortgage' ? 'yearly' : 'one-time';
+    const startYear = EXTRA_COST_YEAR_MIN;
+    const endYear = type === 'yearly' ? Math.min(startYear + 3, EXTRA_COST_YEAR_MAX) : startYear;
+
+    return {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        preset,
+        label: getDefaultExtraCostLabel(preset),
+        type,
+        amount: 0,
+        startYear,
+        endYear
+    };
+}
+
+function normalizeExtraCost(cost, index = 0) {
+    const startYear = Math.min(EXTRA_COST_YEAR_MAX, Math.max(EXTRA_COST_YEAR_MIN, parseInt(cost.startYear, 10) || EXTRA_COST_YEAR_MIN));
+    let endYear = Math.min(EXTRA_COST_YEAR_MAX, Math.max(startYear, parseInt(cost.endYear, 10) || startYear));
+    const type = cost.type === 'yearly' ? 'yearly' : 'one-time';
+
+    if (type === 'one-time') {
+        endYear = startYear;
+    }
+
+    return {
+        id: cost.id || `migrated-${index}-${Date.now()}`,
+        preset: cost.preset || 'other',
+        label: (cost.label || '').trim() || ((cost.preset || 'other') === 'other' ? `Extra ${index + 1}` : getDefaultExtraCostLabel(cost.preset || 'other')),
+        type,
+        amount: Math.max(0, parseFloat(cost.amount) || 0),
+        startYear,
+        endYear
+    };
+}
+
+function migrateLegacyExtraCosts() {
+    const migratedCosts = [];
+
+    for (let index = 1; index <= 3; index++) {
+        const amount = parseFloat(localStorage.getItem(`cost${index}`)) || 0;
+        const startYear = parseInt(localStorage.getItem(`cost${index}BeginYear`), 10) || EXTRA_COST_YEAR_MIN;
+        const endYear = parseInt(localStorage.getItem(`cost${index}EndYear`), 10) || startYear;
+
+        if (amount <= 0) {
+            continue;
+        }
+
+        migratedCosts.push(normalizeExtraCost({
+            id: `legacy-${index}`,
+            preset: 'other',
+            label: `Extra ${index}`,
+            type: startYear === endYear ? 'one-time' : 'yearly',
+            amount,
+            startYear,
+            endYear
+        }, index));
+    }
+
+    return migratedCosts;
+}
+
+function loadExtraCostsFromStorage() {
+    const savedCosts = localStorage.getItem(EXTRA_COSTS_STORAGE_KEY);
+
+    if (savedCosts) {
+        try {
+            const parsedCosts = JSON.parse(savedCosts);
+            if (Array.isArray(parsedCosts)) {
+                return parsedCosts.map((cost, index) => normalizeExtraCost(cost, index));
+            }
+        } catch (error) {
+            console.warn('Could not parse saved extra costs.', error);
+        }
+    }
+
+    return migrateLegacyExtraCosts();
+}
+
+function saveExtraCostsToStorage() {
+    localStorage.setItem(EXTRA_COSTS_STORAGE_KEY, JSON.stringify(extraCosts));
+}
+
+function getExtraCostSummary(cost) {
+    const costTypeLabel = i18next.t(cost.type === 'yearly' ? 'extraCostYearly' : 'extraCostOneTime');
+    const yearLabel = cost.type === 'yearly'
+        ? `${cost.startYear}-${cost.endYear}`
+        : `${cost.startYear}`;
+
+    return `${costTypeLabel} | ${yearLabel}`;
+}
+
+function renderExtraCosts() {
+    if (!extraCostsList || !extraCostsEmptyState) {
+        return;
+    }
+
+    if (extraCosts.length === 0) {
+        extraCostsList.innerHTML = '';
+        extraCostsEmptyState.classList.remove('is-hidden');
+        return;
+    }
+
+    extraCostsEmptyState.classList.add('is-hidden');
+    extraCostsList.innerHTML = extraCosts.map(cost => {
+        const displayLabel = escapeHtml(cost.label || getDefaultExtraCostLabel(cost.preset));
+        const summary = escapeHtml(getExtraCostSummary(cost));
+        const isYearly = cost.type === 'yearly';
+        const yearOptions = Array.from({ length: EXTRA_COST_YEAR_MAX - EXTRA_COST_YEAR_MIN + 1 }, (_, offset) => {
+            const year = EXTRA_COST_YEAR_MIN + offset;
+            return `<option value="${year}" ${year === cost.startYear ? 'selected' : ''}>${year}</option>`;
+        }).join('');
+        const endYearOptions = Array.from({ length: EXTRA_COST_YEAR_MAX - EXTRA_COST_YEAR_MIN + 1 }, (_, offset) => {
+            const year = EXTRA_COST_YEAR_MIN + offset;
+            return `<option value="${year}" ${year === cost.endYear ? 'selected' : ''}>${year}</option>`;
+        }).join('');
+        const getActionAttributes = (action, field = '', value = '') => {
+            const safeField = String(field);
+            const safeValue = String(value);
+            return `onclick="window.handleExtraCostActionByParams('${cost.id}','${action}','${safeField}','${safeValue}'); return false;" onpointerup="window.handleExtraCostActionByParams('${cost.id}','${action}','${safeField}','${safeValue}'); return false;"`;
+        };
+
+        return `
+            <details class="extra-cost-item" data-cost-id="${cost.id}">
+                <summary>
+                    <div class="extra-cost-summary-main">
+                        <span class="extra-cost-title">${displayLabel}</span>
+                        <span class="extra-cost-meta">${summary}</span>
+                    </div>
+                </summary>
+                <div class="extra-cost-body">
+                    <div class="extra-cost-grid">
+                        <div class="field-group">
+                            <span class="field-label">${escapeHtml(i18next.t('extraCostName'))}</span>
+                            <input type="text" data-field="label" value="${displayLabel}" maxlength="60">
+                        </div>
+                        <div class="field-group">
+                            <span class="field-label">${escapeHtml(i18next.t('extraCostAmount'))}</span>
+                            <input type="text" data-field="amount" inputmode="numeric" value="${cost.amount}">
+                        </div>
+                        <div class="field-group">
+                            <span class="field-label">${escapeHtml(i18next.t('beginyear'))}</span>
+                            <select data-field="startYear">${yearOptions}</select>
+                        </div>
+                        <div class="field-group">
+                            <span class="field-label">${escapeHtml(i18next.t('endyear'))}</span>
+                            <select data-field="endYear" ${isYearly ? '' : 'disabled'}>${endYearOptions}</select>
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <span class="field-label">${escapeHtml(i18next.t('extraCostType'))}</span>
+                        <select data-field="type">
+                            <option value="one-time" ${isYearly ? '' : 'selected'}>${escapeHtml(i18next.t('extraCostOneTime'))}</option>
+                            <option value="yearly" ${isYearly ? 'selected' : ''}>${escapeHtml(i18next.t('extraCostYearly'))}</option>
+                        </select>
+                    </div>
+                    <div class="extra-cost-actions">
+                        <button type="button" class="remove-cost-button" data-action="remove-cost" ${getActionAttributes('remove-cost')}>${escapeHtml(i18next.t('extraCostRemove'))}</button>
+                    </div>
+                </div>
+            </details>
+        `;
+    }).join('');
+}
+
+function syncExtraCostCard(costId) {
+    const card = extraCostsList ? extraCostsList.querySelector(`[data-cost-id="${costId}"]`) : null;
+    const cost = extraCosts.find(item => item.id === costId);
+
+    if (!card || !cost) {
+        return;
+    }
+
+    const title = card.querySelector('.extra-cost-title');
+    const meta = card.querySelector('.extra-cost-meta');
+    const labelInput = card.querySelector('[data-field="label"]');
+    const amountInput = card.querySelector('[data-field="amount"]');
+    const startYearInput = card.querySelector('[data-field="startYear"]');
+    const endYearInput = card.querySelector('[data-field="endYear"]');
+    const typeInput = card.querySelector('[data-field="type"]');
+
+    if (title) {
+        title.textContent = cost.label || getDefaultExtraCostLabel(cost.preset);
+    }
+
+    if (meta) {
+        meta.textContent = getExtraCostSummary(cost);
+    }
+
+    if (labelInput) {
+        labelInput.value = cost.label || getDefaultExtraCostLabel(cost.preset);
+    }
+
+    if (amountInput) {
+        amountInput.value = cost.amount;
+    }
+
+    if (startYearInput) {
+        startYearInput.value = cost.startYear;
+    }
+
+    if (endYearInput) {
+        endYearInput.value = cost.endYear;
+        endYearInput.disabled = cost.type !== 'yearly';
+    }
+
+    if (typeInput) {
+        typeInput.value = cost.type;
+    }
+}
+
+function getExtraCostFieldDefault(cost, field) {
+    if (field === 'amount') {
+        return 0;
+    }
+
+    if (field === 'type') {
+        return cost.type || 'one-time';
+    }
+
+    if (field === 'endYear') {
+        return cost.type === 'yearly' ? cost.startYear : cost.startYear;
+    }
+
+    return EXTRA_COST_YEAR_MIN;
+}
+
+function applyExtraCostFieldUpdate(cost, field, rawValue) {
+    const numericFields = new Set(['amount', 'startYear', 'endYear']);
+
+    if (numericFields.has(field)) {
+        const cleanedValue = String(rawValue).replace(/[^\d]/g, '');
+        const parsedValue = cleanedValue === '' ? getExtraCostFieldDefault(cost, field) : parseInt(cleanedValue, 10);
+        cost[field] = field === 'amount'
+            ? Math.max(0, parsedValue || 0)
+            : parsedValue;
+    } else if (field === 'type') {
+        cost.type = rawValue === 'yearly' ? 'yearly' : 'one-time';
+    } else {
+        cost[field] = String(rawValue).trimStart();
+    }
+
+    if (cost.startYear < EXTRA_COST_YEAR_MIN) cost.startYear = EXTRA_COST_YEAR_MIN;
+    if (cost.startYear > EXTRA_COST_YEAR_MAX) cost.startYear = EXTRA_COST_YEAR_MAX;
+
+    if (cost.type === 'one-time') {
+        cost.endYear = cost.startYear;
+    } else {
+        if (cost.endYear < cost.startYear) cost.endYear = cost.startYear;
+        if (cost.endYear > EXTRA_COST_YEAR_MAX) cost.endYear = EXTRA_COST_YEAR_MAX;
+    }
+}
+
+function addExtraCost(preset = 'other') {
+    const newCost = createExtraCost(preset);
+    extraCosts.push(newCost);
+    saveExtraCostsToStorage();
+    renderExtraCosts();
+    const newCard = extraCostsList ? extraCostsList.querySelector(`[data-cost-id="${newCost.id}"]`) : null;
+    if (newCard) {
+        newCard.open = true;
+        const labelInput = newCard.querySelector('[data-field="label"]');
+        if (labelInput) {
+            labelInput.focus();
+            labelInput.select();
+        }
+    }
+    updateChart();
+}
+
+extraCosts = loadExtraCostsFromStorage();
+
+function handleExtraCostActionByParams(costId, action, field = '', actionValue = '') {
+    const card = extraCostsList ? extraCostsList.querySelector(`[data-cost-id="${costId}"]`) : null;
+    const now = Date.now();
+    const signature = `${costId}:${action}:${field}:${actionValue}`;
+
+    if (handleExtraCostActionByParams.lastSignature === signature && now - (handleExtraCostActionByParams.lastTs || 0) < 250) {
+        return;
+    }
+
+    handleExtraCostActionByParams.lastSignature = signature;
+    handleExtraCostActionByParams.lastTs = now;
+
+    if (!card) {
+        return;
+    }
+
+    const costIndex = extraCosts.findIndex(item => item.id === costId);
+
+    if (costIndex === -1) {
+        return;
+    }
+
+    if (action === 'remove-cost') {
+        extraCosts.splice(costIndex, 1);
+        saveExtraCostsToStorage();
+        renderExtraCosts();
+        updateChart();
+        return;
+    }
+
+    if (action === 'step-field') {
+        const step = parseInt(actionValue, 10) || 0;
+        const cardInput = card.querySelector(`input[data-field="${field}"]`);
+        const currentValueFromInput = cardInput ? String(cardInput.value).replace(/[^\d]/g, '') : '';
+        const currentValue = currentValueFromInput === ''
+            ? getExtraCostFieldDefault(extraCosts[costIndex], field)
+            : parseInt(currentValueFromInput, 10);
+        applyExtraCostFieldUpdate(extraCosts[costIndex], field, currentValue + step);
+        saveExtraCostsToStorage();
+        syncExtraCostCard(extraCosts[costIndex].id);
+        updateChart();
+        return;
+    }
+
+    if (action === 'set-type') {
+        extraCosts[costIndex].type = actionValue === 'yearly' ? 'yearly' : 'one-time';
+        if (extraCosts[costIndex].type === 'one-time') {
+            extraCosts[costIndex].endYear = extraCosts[costIndex].startYear;
+        } else if (extraCosts[costIndex].endYear < extraCosts[costIndex].startYear) {
+            extraCosts[costIndex].endYear = extraCosts[costIndex].startYear;
+        }
+        saveExtraCostsToStorage();
+        syncExtraCostCard(extraCosts[costIndex].id);
+        updateChart();
+    }
+}
+
+window.handleExtraCostActionByParams = handleExtraCostActionByParams;
+
+function setChartMobileView(view) {
+    activeChartView = view === 'cashflow' ? 'cashflow' : 'portfolio';
+    localStorage.setItem(CHART_VIEW_STORAGE_KEY, activeChartView);
+
+    if (chartPanel) {
+        chartPanel.dataset.mobileView = activeChartView;
+    }
+
+    chartViewButtons.forEach(button => {
+        const isActive = button.dataset.chartView === activeChartView;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', String(isActive));
+    });
+}
+
+function getAnalysisMode() {
+    const allowedModes = new Set([
+        'deterministic',
+        'monte-carlo',
+        'stress-bear',
+        'stress-inflation',
+        'stress-extra-cost',
+        'stress-pension'
+    ]);
+
+    return analysisModeSelect && allowedModes.has(analysisModeSelect.value)
+        ? analysisModeSelect.value
+        : 'deterministic';
+}
+
+function toggleAnalysisSettings() {
+    if (!analysisAdvancedSettings) {
+        return;
+    }
+
+    analysisAdvancedSettings.classList.toggle('is-hidden', getAnalysisMode() !== 'monte-carlo');
+}
+
+function getStressScenarioDefinition(mode, inputs) {
+    const simulationStartYear = new Date().getFullYear();
+    const shockYearOffset = Math.min(5, Math.max(1, getProjectionDuration(inputs) - 1));
+    const shockYear = simulationStartYear + shockYearOffset;
+    const shockAmount = Math.max(25000, Math.round(inputs.annualSpending * 0.75 / 1000) * 1000);
+
+    const definitions = {
+        'stress-bear': {
+            labelKey: 'analysisModeStressBear',
+            lineLabelKey: 'stressLineBear',
+            summaryKey: 'stressSummaryBear',
+            color: '#b24a3f',
+            scenario: {
+                annualReturnRates: [-0.18, -0.1, 0].map((rate, index) => rate).concat(
+                    Array.from({ length: Math.max(0, getProjectionDuration(inputs) - 3) }, () => inputs.annualReturn / 100)
+                )
+            }
+        },
+        'stress-inflation': {
+            labelKey: 'analysisModeStressInflation',
+            lineLabelKey: 'stressLineInflation',
+            summaryKey: 'stressSummaryInflation',
+            color: '#b07a17',
+            scenario: {
+                annualInflationRates: [0.05, 0.06, 0.07, 0.06, 0.05].concat(
+                    Array.from({ length: Math.max(0, getProjectionDuration(inputs) - 5) }, () => inputs.inflation / 100)
+                )
+            }
+        },
+        'stress-extra-cost': {
+            labelKey: 'analysisModeStressExtraCost',
+            lineLabelKey: 'stressLineExtraCost',
+            summaryKey: 'stressSummaryExtraCost',
+            color: '#8d5a2b',
+            summaryParams: {
+                year: shockYear,
+                amount: formatEuroAmount(shockAmount)
+            },
+            scenario: {
+                extraCostShocks: {
+                    [shockYearOffset]: shockAmount
+                }
+            }
+        },
+        'stress-pension': {
+            labelKey: 'analysisModeStressPension',
+            lineLabelKey: 'stressLinePension',
+            summaryKey: 'stressSummaryPension',
+            color: '#7a4fa3',
+            scenario: {
+                pension1Multiplier: 0.8,
+                pension2Multiplier: 0.8
+            }
+        }
+    };
+
+    return definitions[mode] || null;
+}
+
+function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+}
+
+function getSimulationInputs() {
+    return {
+        currentAge1: parseInt(currentAge1Slider.value, 10),
+        retirementAge1: parseInt(retirementAge1Slider.value, 10),
+        endAge1: parseInt(endAge1Slider.value, 10),
+        currentAge2: parseInt(currentAge2Slider.value, 10),
+        retirementAge2: parseInt(retirementAge2Slider.value, 10),
+        endAge2: parseInt(endAge2Slider.value, 10),
+        pensionAge: parseInt(pensionAgeSlider.value, 10),
+        monthlyPension: parseFloat(monthlyPensionSlider.value),
+        pensionAge2: parseInt(pensionAge2Slider.value, 10),
+        monthlyPension2: parseFloat(monthlyPension2Slider.value),
+        currentAssets: parseFloat(currentAssetsSlider.value),
+        annualReturn: parseFloat(portfolioReturnsSlider.value),
+        annualSpending: parseFloat(annualSpendingSlider.value),
+        annualContribution: parseFloat(annualContributionSlider.value),
+        annualContribution2: parseFloat(annualContribution2Slider.value),
+        inflation: parseFloat(inflationSlider.value)
+    };
+}
+
+function getProjectionDuration(inputs) {
+    return Math.max(inputs.endAge1 - inputs.currentAge1, inputs.endAge2 - inputs.currentAge2);
+}
+
+function getScenarioRate(rates, index, fallbackRate) {
+    if (Array.isArray(rates) && rates[index] !== undefined) {
+        return rates[index];
+    }
+
+    return fallbackRate;
+}
+
+function buildInflationFactors(duration, inflationRates, fallbackRate) {
+    const inflationFactors = [1];
+
+    for (let year = 1; year <= duration; year++) {
+        const rate = getScenarioRate(inflationRates, year - 1, fallbackRate);
+        inflationFactors[year] = inflationFactors[year - 1] * (1 + rate);
+    }
+
+    return inflationFactors;
+}
+
+function getExtraCostAmountForYear(currentYear, inflationRate, startYear) {
+    return extraCosts.reduce((total, cost) => {
+        if (currentYear < cost.startYear || currentYear > cost.endYear) {
+            return total;
+        }
+
+        return total + (cost.amount * Math.pow(1 + inflationRate, currentYear - startYear));
+    }, 0);
+}
+
+function getExtraCostAmountForOffset(offset, simulationStartYear, inflationFactors) {
+    const currentYear = simulationStartYear + offset;
+    const inflationFactor = inflationFactors[offset] || 1;
+
+    return extraCosts.reduce((total, cost) => {
+        if (currentYear < cost.startYear || currentYear > cost.endYear) {
+            return total;
+        }
+
+        return total + (cost.amount * inflationFactor);
+    }, 0);
+}
+
+function getChartXAxisLabel(data, index, isMobile) {
+    const year = data.years[index];
+    const age1 = data.ages1[index];
+    const age2 = data.ages2[index];
+
+    if (year === undefined) {
+        return '';
+    }
+
+    if (isMobile) {
+        return `${year}`;
+    }
+
+    return [
+        `${year}`,
+        age1 !== undefined ? `${age1}` + i18next.t('yearShort') : '',
+        age2 !== undefined ? `${age2}` + i18next.t('yearShort') : ''
+    ];
+}
+
+function updateCashflowSummary(data) {
+    if (!cashflowChartSummary) {
+        return;
+    }
+
+    const worstNetValue = Math.min(...data.cashflowNet);
+    const worstNetIndex = data.cashflowNet.indexOf(worstNetValue);
+    const firstPensionIndex = data.cashflowPensions.findIndex(value => value > 0);
+
+    const summaryParts = [];
+
+    if (worstNetIndex >= 0) {
+        summaryParts.push(
+            i18next.t('cashflowSummaryWorst', {
+                year: data.years[worstNetIndex],
+                amount: formatEuroAmount(worstNetValue)
+            })
+        );
+    }
+
+    if (firstPensionIndex >= 0) {
+        summaryParts.push(
+            i18next.t('cashflowSummaryFirstPension', {
+                year: data.years[firstPensionIndex]
+            })
+        );
+    }
+
+    if (getAnalysisMode() === 'monte-carlo') {
+        summaryParts.push(i18next.t('cashflowSummaryBaseCase'));
+    }
+
+    cashflowChartSummary.textContent = summaryParts.join('  |  ');
+}
+
 // Calculate portfolio growth and depletion
 function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentAge2, retirementAge2, endAge2, currentAssets, annualReturn, annualSpending, annualContribution, annualContribution2, inflation, pensionAge, monthlyPension, pensionAge2, monthlyPension2) {
     const yearsToRetirement1 = retirementAge1 - currentAge1;
     const yearsToRetirement2 = retirementAge2 - currentAge2;
-    const yearsAfterRetirement1 = endAge1 - retirementAge1;
-    const yearsAfterRetirement2 = endAge2 - retirementAge2;
     const data = {
         years: [],
         ages1: [],
@@ -206,6 +811,11 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
         oneWorksValues: [],
         withdrawalYears: [],
         withdrawalValues: [],
+        cashflowContributions: [],
+        cashflowPensions: [],
+        cashflowSpending: [],
+        cashflowExtras: [],
+        cashflowNet: [],
         fireAge: null,
         fireValue: null
     };
@@ -213,29 +823,27 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
     let portfolioValue = currentAssets;
     const annualReturnRate = annualReturn / 100;
     const inflationRate = inflation / 100;
-    
-    
-    // Calculate FIRE number: net spending when both pensions are active
-    const annualPension1 = monthlyPension * 12;
-    const annualPension2 = monthlyPension2 * 12;
+    const simulationStartYear = new Date().getFullYear();
     
     // Start with base values
     let currentAnnualSpending = annualSpending;
     
     // Add starting point
-    data.years.push( new Date().getFullYear())
+    data.years.push(simulationStartYear)
     const currentYear = data.years.at(-1); // voor fase 1 en 2
-    extraCosts.forEach(cost => {
-        if (currentYear >= cost.startYear  && currentYear <= cost.endYear) {
-            portfolioValue -= cost.amount;
-            if (portfolioValue < 0) portfolioValue = 0;
-        }
-    });
+    const currentYearExtraCosts = getExtraCostAmountForYear(currentYear, inflationRate, simulationStartYear);
+    portfolioValue -= currentYearExtraCosts;
+    if (portfolioValue < 0) portfolioValue = 0;
     data.ages1.push(currentAge1);
     data.ages2.push(currentAge2);
     data.values.push(portfolioValue);
     data.growthYears.push(data.years[0]);
     data.growthValues.push(portfolioValue);
+    data.cashflowContributions.push(0);
+    data.cashflowPensions.push(0);
+    data.cashflowSpending.push(0);
+    data.cashflowExtras.push(currentYearExtraCosts);
+    data.cashflowNet.push(-currentYearExtraCosts);
     
     let currentAnnualContribution = annualContribution
     for (let year = 1; year <= Math.min(yearsToRetirement1, yearsToRetirement2); year++) {
@@ -247,13 +855,9 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
         portfolioValue = portfolioValue * (1 + annualReturnRate) + currentAnnualContribution;
        
         const currentYear = data.years.at(-1) + 1; // voor fase 1 en 2
-        extraCosts.forEach(cost => {
-            if (currentYear >= cost.startYear && currentYear <= cost.endYear) {
-                let inflatedCost  = cost.amount * Math.pow(1 + inflationRate, currentYear -  data.years[0]);
-                portfolioValue -= inflatedCost;
-                if (portfolioValue < 0) portfolioValue = 0;
-            }
-        });
+        const extraCostThisYear = getExtraCostAmountForYear(currentYear, inflationRate, simulationStartYear);
+        portfolioValue -= extraCostThisYear;
+        if (portfolioValue < 0) portfolioValue = 0;
         
         // Store yearly value
         data.years.push(data.years.at(-1)+1)
@@ -262,6 +866,11 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
         data.values.push(portfolioValue);
         data.growthYears.push(data.years.at(-1));
         data.growthValues.push(portfolioValue);
+        data.cashflowContributions.push(currentAnnualContribution);
+        data.cashflowPensions.push(0);
+        data.cashflowSpending.push(0);
+        data.cashflowExtras.push(extraCostThisYear);
+        data.cashflowNet.push(currentAnnualContribution - extraCostThisYear);
     }
 
     if (yearsToRetirement1 != yearsToRetirement2) {
@@ -281,13 +890,9 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
             portfolioValue = portfolioValue * (1 + annualReturnRate) + currentAnnualContribution;
 
             const currentYear = data.years.at(-1) + 1; // voor fase 1 en 2
-            extraCosts.forEach(cost => {
-                if (currentYear >= cost.startYear && currentYear <= cost.endYear) {
-                    let inflatedCost = cost.amount * Math.pow(1 + inflationRate, currentYear - data.years[0]);
-                    portfolioValue -= inflatedCost;
-                    if (portfolioValue < 0) portfolioValue = 0;
-                }
-            });
+            const extraCostThisYear = getExtraCostAmountForYear(currentYear, inflationRate, simulationStartYear);
+            portfolioValue -= extraCostThisYear;
+            if (portfolioValue < 0) portfolioValue = 0;
 
             if (portfolioValue <= 0) {
                 portfolioValue = 0;
@@ -297,6 +902,11 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
                 data.values.push(portfolioValue);
                 data.oneWorksYears.push(data.years.at(-1));
                 data.oneWorksValues.push(portfolioValue);
+                data.cashflowContributions.push(currentAnnualContribution);
+                data.cashflowPensions.push(0);
+                data.cashflowSpending.push(0);
+                data.cashflowExtras.push(extraCostThisYear);
+                data.cashflowNet.push(currentAnnualContribution - extraCostThisYear);
                 break;
             }
 
@@ -306,6 +916,11 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
             data.values.push(portfolioValue);
             data.oneWorksYears.push(data.years.at(-1));
             data.oneWorksValues.push(portfolioValue);
+            data.cashflowContributions.push(currentAnnualContribution);
+            data.cashflowPensions.push(0);
+            data.cashflowSpending.push(0);
+            data.cashflowExtras.push(extraCostThisYear);
+            data.cashflowNet.push(currentAnnualContribution - extraCostThisYear);
         }
     }
 
@@ -366,13 +981,9 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
         portfolioValue = portfolioValue * (1 + annualReturnRate) - netAnnualWithdrawal;
 
         const currentYear = data.years.at(-1) + 1;
-        extraCosts.forEach(cost => {
-            if (currentYear >= cost.startYear && currentYear <= cost.endYear) {
-                let inflatedCost = cost.amount * Math.pow(1 + inflationRate, currentYear - data.years[0]);
-                portfolioValue -= inflatedCost;
-              if (portfolioValue < 0) portfolioValue = 0;
-            }
-          });
+        const extraCostThisYear = getExtraCostAmountForYear(currentYear, inflationRate, simulationStartYear);
+        portfolioValue -= extraCostThisYear;
+        if (portfolioValue < 0) portfolioValue = 0;
 
         // Store yearly value
         if (portfolioValue <= 0) {
@@ -383,6 +994,11 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
             data.values.push(portfolioValue);
             data.withdrawalYears.push(data.years.at(-1));
             data.withdrawalValues.push(portfolioValue);
+            data.cashflowContributions.push(0);
+            data.cashflowPensions.push(totalAnnualPensionThisYear);
+            data.cashflowSpending.push(currentAnnualSpending);
+            data.cashflowExtras.push(extraCostThisYear);
+            data.cashflowNet.push(totalAnnualPensionThisYear - currentAnnualSpending - extraCostThisYear);
             break;
         }
 
@@ -392,9 +1008,217 @@ function calculatePortfolioGrowth(currentAge1, retirementAge1, endAge1, currentA
         data.values.push(portfolioValue);
         data.withdrawalYears.push(data.years.at(-1));
         data.withdrawalValues.push(portfolioValue);
+        data.cashflowContributions.push(0);
+        data.cashflowPensions.push(totalAnnualPensionThisYear);
+        data.cashflowSpending.push(currentAnnualSpending);
+        data.cashflowExtras.push(extraCostThisYear);
+        data.cashflowNet.push(totalAnnualPensionThisYear - currentAnnualSpending - extraCostThisYear);
     }
     
     return data;
+}
+
+function calculateScenarioPortfolioGrowth(inputs, scenario = {}) {
+    const duration = getProjectionDuration(inputs);
+    const defaultAnnualReturnRate = inputs.annualReturn / 100;
+    const defaultInflationRate = inputs.inflation / 100;
+    const annualReturnRates = scenario.annualReturnRates || [];
+    const annualInflationRates = scenario.annualInflationRates || [];
+    const extraCostShocks = scenario.extraCostShocks || {};
+    const pension1Multiplier = scenario.pension1Multiplier ?? 1;
+    const pension2Multiplier = scenario.pension2Multiplier ?? 1;
+    const inflationFactors = buildInflationFactors(duration, annualInflationRates, defaultInflationRate);
+    const simulationStartYear = new Date().getFullYear();
+    const data = {
+        years: [],
+        ages1: [],
+        ages2: [],
+        values: [],
+        growthYears: [],
+        growthValues: [],
+        oneWorksYears: [],
+        oneWorksValues: [],
+        withdrawalYears: [],
+        withdrawalValues: [],
+        cashflowContributions: [],
+        cashflowPensions: [],
+        cashflowSpending: [],
+        cashflowExtras: [],
+        cashflowNet: [],
+        fireAge: null,
+        fireValue: null
+    };
+
+    let portfolioValue = inputs.currentAssets;
+    const currentYearExtraCosts = getExtraCostAmountForOffset(0, simulationStartYear, inflationFactors);
+
+    portfolioValue = Math.max(0, portfolioValue - currentYearExtraCosts);
+
+    data.years.push(simulationStartYear);
+    data.ages1.push(inputs.currentAge1);
+    data.ages2.push(inputs.currentAge2);
+    data.values.push(portfolioValue);
+    data.growthYears.push(simulationStartYear);
+    data.growthValues.push(portfolioValue);
+    data.cashflowContributions.push(0);
+    data.cashflowPensions.push(0);
+    data.cashflowSpending.push(0);
+    data.cashflowExtras.push(currentYearExtraCosts);
+    data.cashflowNet.push(-currentYearExtraCosts);
+
+    for (let offset = 1; offset <= duration; offset++) {
+        const age1 = inputs.currentAge1 + offset;
+        const age2 = inputs.currentAge2 + offset;
+        const year = simulationStartYear + offset;
+        const annualReturnRate = getScenarioRate(annualReturnRates, offset - 1, defaultAnnualReturnRate);
+        const contributionFactor = inflationFactors[Math.max(0, offset - 1)] || 1;
+        const retirementFactor = inflationFactors[offset] || 1;
+        const person1Working = age1 <= inputs.retirementAge1 && age1 <= inputs.endAge1;
+        const person2Working = age2 <= inputs.retirementAge2 && age2 <= inputs.endAge2;
+        const bothWorking = person1Working && person2Working;
+        const oneWorking = person1Working !== person2Working;
+
+        let annualContributionThisYear = 0;
+        let totalAnnualPensionThisYear = 0;
+        let currentAnnualSpending = 0;
+
+        if (bothWorking) {
+            annualContributionThisYear = inputs.annualContribution * contributionFactor;
+        } else if (oneWorking) {
+            annualContributionThisYear = inputs.annualContribution2 * contributionFactor;
+        } else {
+            currentAnnualSpending = inputs.annualSpending * retirementFactor;
+
+            if (age1 >= inputs.pensionAge && age1 <= inputs.endAge1) {
+                totalAnnualPensionThisYear += inputs.monthlyPension * pension1Multiplier * retirementFactor * 12;
+            }
+
+            if (age2 >= inputs.pensionAge2 && age2 <= inputs.endAge2) {
+                totalAnnualPensionThisYear += inputs.monthlyPension2 * pension2Multiplier * retirementFactor * 12;
+            }
+        }
+
+        const scenarioShockThisYear = extraCostShocks[offset] || 0;
+        const extraCostThisYear = getExtraCostAmountForOffset(offset, simulationStartYear, inflationFactors) + scenarioShockThisYear;
+        const netCashflow = annualContributionThisYear + totalAnnualPensionThisYear - currentAnnualSpending - extraCostThisYear;
+
+        portfolioValue = portfolioValue * (1 + annualReturnRate) + netCashflow;
+        portfolioValue = Math.max(0, portfolioValue);
+
+        data.years.push(year);
+        data.ages1.push(age1 <= inputs.endAge1 ? age1 : undefined);
+        data.ages2.push(age2 <= inputs.endAge2 ? age2 : undefined);
+        data.values.push(portfolioValue);
+        data.cashflowContributions.push(annualContributionThisYear);
+        data.cashflowPensions.push(totalAnnualPensionThisYear);
+        data.cashflowSpending.push(currentAnnualSpending);
+        data.cashflowExtras.push(extraCostThisYear);
+        data.cashflowNet.push(netCashflow);
+
+        if (bothWorking) {
+            data.growthYears.push(year);
+            data.growthValues.push(portfolioValue);
+        } else if (oneWorking) {
+            if (data.oneWorksYears.length === 0) {
+                data.oneWorksYears.push(year - 1);
+                data.oneWorksValues.push(data.values[data.values.length - 2]);
+            }
+
+            data.oneWorksYears.push(year);
+            data.oneWorksValues.push(portfolioValue);
+        } else {
+            if (data.withdrawalYears.length === 0) {
+                data.withdrawalYears.push(year - 1);
+                data.withdrawalValues.push(data.values[data.values.length - 2]);
+            }
+
+            data.withdrawalYears.push(year);
+            data.withdrawalValues.push(portfolioValue);
+        }
+    }
+
+    return data;
+}
+
+function getPercentile(values, percentile) {
+    if (!values.length) {
+        return 0;
+    }
+
+    const sortedValues = [...values].sort((a, b) => a - b);
+    const index = (sortedValues.length - 1) * percentile;
+    const lowerIndex = Math.floor(index);
+    const upperIndex = Math.ceil(index);
+
+    if (lowerIndex === upperIndex) {
+        return sortedValues[lowerIndex];
+    }
+
+    const weight = index - lowerIndex;
+    return sortedValues[lowerIndex] * (1 - weight) + sortedValues[upperIndex] * weight;
+}
+
+function sampleStandardNormal() {
+    let u = 0;
+    let v = 0;
+
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+function buildRandomScenario(duration, annualReturn, inflation, returnVolatility, inflationVolatility) {
+    const annualReturnRates = [];
+    const annualInflationRates = [];
+
+    for (let year = 0; year < duration; year++) {
+        const sampledReturn = (annualReturn + sampleStandardNormal() * returnVolatility) / 100;
+        const sampledInflation = (inflation + sampleStandardNormal() * inflationVolatility) / 100;
+
+        annualReturnRates.push(clamp(sampledReturn, -0.95, 1.5));
+        annualInflationRates.push(clamp(sampledInflation, -0.05, 0.2));
+    }
+
+    return {
+        annualReturnRates,
+        annualInflationRates
+    };
+}
+
+function runMonteCarloAnalysis(inputs, simulationCount, returnVolatility, inflationVolatility) {
+    const duration = getProjectionDuration(inputs);
+    const yearlyValues = Array.from({ length: duration + 1 }, () => []);
+    let successCount = 0;
+
+    for (let simulation = 0; simulation < simulationCount; simulation++) {
+        const scenario = buildRandomScenario(duration, inputs.annualReturn, inputs.inflation, returnVolatility, inflationVolatility);
+        const result = calculateScenarioPortfolioGrowth(inputs, scenario);
+        const finalValue = result.values[result.values.length - 1] || 0;
+
+        if (finalValue > 0) {
+            successCount++;
+        }
+
+        result.values.forEach((value, index) => {
+            yearlyValues[index].push(value);
+        });
+    }
+
+    const p10 = yearlyValues.map(values => getPercentile(values, 0.1));
+    const p50 = yearlyValues.map(values => getPercentile(values, 0.5));
+    const p90 = yearlyValues.map(values => getPercentile(values, 0.9));
+
+    return {
+        p10,
+        p50,
+        p90,
+        successRate: simulationCount > 0 ? successCount / simulationCount : 0,
+        finalP10: p10[p10.length - 1] || 0,
+        finalP50: p50[p50.length - 1] || 0,
+        finalP90: p90[p90.length - 1] || 0,
+        simulationCount
+    };
 }
 
 // Update chart
@@ -415,23 +1239,6 @@ function updateChart() {
     const annualContribution = parseFloat(annualContributionSlider.value);
     const annualContribution2 = parseFloat(annualContribution2Slider.value);
     const inflation = parseFloat(inflationSlider.value);
-     // Lees alle rijen uit de tabel
-     extraCosts = [];    
-     extraCosts.push({
-         amount: parseFloat(cost1Slider.value) || 0,
-         startYear: parseInt(cost1BeginYearSlider.value) || 2026,
-         endYear: parseInt(cost1EndYearSlider.value) || 2026
-     });
-     extraCosts.push({
-         amount: parseFloat(cost2Slider.value) || 0,
-         startYear: parseInt(cost2BeginYearSlider.value) || 2026,
-         endYear: parseInt(cost2EndYearSlider.value) || 2026
-     });
-     extraCosts.push({
-         amount: parseFloat(cost3Slider.value) || 0,
-         startYear: parseInt(cost3BeginYearSlider.value) || 2026,
-         endYear: parseInt(cost3EndYearSlider.value) || 2026
-     });
 
     const data = calculatePortfolioGrowth(
         currentAge1,
@@ -454,12 +1261,17 @@ function updateChart() {
     
     if (portfolioChart) {
         portfolioChart.destroy();
-    }    
+    }
+
+    if (cashflowChart) {
+        cashflowChart.destroy();
+    }
 
     // Nieuw: Check of we reële of nominale bedragen moeten tonen
-    const showRealValues = document.getElementById('showRealValues') ? document.getElementById('showRealValues').checked : false;
+    const showRealValues = showRealValuesCheckbox ? showRealValuesCheckbox.checked : false;
     const inflationRate = inflation / 100;
     const startYear = data.years[0]; // Het huidige jaar (bijv. 26)
+    const isMobile = window.innerWidth < 768;
 
     // Hulpfunctie om een toekomstig bedrag om te rekenen naar vandaag
     const applyInflationAdjustment = (value, year) => {
@@ -487,6 +1299,24 @@ function updateChart() {
         let val = withdrawalIdx >= 0 ? data.withdrawalValues[withdrawalIdx] : null;
         return applyInflationAdjustment(val, year);
     });
+
+    const cashflowContributionData = data.cashflowContributions.map((value, index) =>
+        applyInflationAdjustment(value, data.years[index])
+    );
+    const cashflowPensionData = data.cashflowPensions.map((value, index) =>
+        applyInflationAdjustment(value, data.years[index])
+    );
+    const cashflowSpendingData = data.cashflowSpending.map((value, index) =>
+        -applyInflationAdjustment(value, data.years[index])
+    );
+    const cashflowExtraCostData = data.cashflowExtras.map((value, index) =>
+        -applyInflationAdjustment(value, data.years[index])
+    );
+    const cashflowNetData = data.cashflowNet.map((value, index) =>
+        applyInflationAdjustment(value, data.years[index])
+    );
+
+    updateCashflowSummary(data);
 
     // Create FIRE indicator dataset (point at FIRE age)
     const fireData = data.ages1.map(() => null);
@@ -586,9 +1416,9 @@ function updateChart() {
                     display: true,
                     position: 'top',
                     labels: {
-                        font: { size: window.innerWidth < 768 ? 12 : 14 },
-                        padding: window.innerWidth < 768 ? 8 : 15,
-                        boxWidth: window.innerWidth < 768 ? 20 : 40
+                        font: { size: isMobile ? 12 : 14 },
+                        padding: isMobile ? 8 : 15,
+                        boxWidth: isMobile ? 20 : 40
                       }
                 },
                 tooltip: {
@@ -614,7 +1444,7 @@ function updateChart() {
                             const age1 = data.ages1[idx];
                             const age2 = data.ages2[idx];
                             const ages = [age1 !== undefined ? i18next.t("person1") + `: ${age1}` + i18next.t('yearShort') : '', age2 !== undefined ? i18next.t("person2") + `: ${age2}` + i18next.t('yearShort') : ''].filter(Boolean).join(' | ');
-                            return `€ ${context.parsed.y.toFixed(2)}  (${ages})`;
+                            return `${formatEuroAmount(context.parsed.y)} (${ages})`;
                             //'€ ' + (num / 1000).toFixed(1) + 'K';'€ ' + (num / 1000).toFixed(1) + 'K';
                           }
                           
@@ -624,11 +1454,11 @@ function updateChart() {
             scales: {
                 x: {
                     title: {
-                        display: window.innerWidth < 768 ? false: true,
+                        display: isMobile ? false : true,
                         text:  i18next.t('dateInYears'),
                         font: { 
-                            size: window.innerWidth < 768 ? 10 : 12,
-                            weight: window.innerWidth < 768 ? '400' : '600'
+                            size: isMobile ? 10 : 12,
+                            weight: isMobile ? '400' : '600'
                          },
                         padding: { top: 10, bottom: 10 }
                     },
@@ -636,30 +1466,16 @@ function updateChart() {
                         color: 'rgba(0, 0, 0, 0.05)'
                     },
                     ticks: {
-                        font: { size: window.innerWidth < 768 ? 10 : 12 },
-                        autoSkipPadding: window.innerWidth < 768 ? 2 : 10,
+                        font: { size: isMobile ? 10 : 12 },
+                        autoSkipPadding: isMobile ? 2 : 10,
                         callback: function(value, index) {
-                            const year = data.years[index];
-                            const age1 = data.ages1[index];
-                            const age2 = data.ages2[index];
-                            if (year === undefined) return '';                           
-                            const isMobile = window.innerWidth < 768;
-
-                            if (isMobile) {
-                                return `${year}`; // 1 regel => veel minder breedte
-                            }
-
-                            return [
-                                `${year}`,
-                                age1 !== undefined ? `${age1}` + i18next.t('yearShort') : '',
-                                age2 !== undefined ? `${age2}` + i18next.t('yearShort') : ''
-                            ];
+                            return getChartXAxisLabel(data, index, isMobile);
                         }
                     }
                 },
                 y: {
                     title: {
-                        display: window.innerWidth < 768 ? false: true,
+                        display: isMobile ? false : true,
                         text: i18next.t('portfolioValue') + ' (€)',
                         font: { 
                             size: 12,
@@ -671,7 +1487,7 @@ function updateChart() {
                         color: 'rgba(0, 0, 0, 0.05)'
                     },
                     ticks: {
-                        font: { size: window.innerWidth < 768 ? 10 : 12 },
+                        font: { size: isMobile ? 10 : 12 },
                         callback: function(value) {
                             return formatCompactEuroAmount(value);
                           }
@@ -686,8 +1502,718 @@ function updateChart() {
         }
     });
 
-   
+    cashflowChart = new Chart(cashflowCtx, {
+        type: 'bar',
+        data: {
+            labels: data.years,
+            datasets: [
+                {
+                    label: i18next.t('cashflowContributions'),
+                    data: cashflowContributionData,
+                    backgroundColor: 'rgba(102, 126, 234, 0.62)',
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    stack: 'cashflow'
+                },
+                {
+                    label: i18next.t('cashflowPensionIncome'),
+                    data: cashflowPensionData,
+                    backgroundColor: 'rgba(39, 174, 96, 0.6)',
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    stack: 'cashflow'
+                },
+                {
+                    label: i18next.t('cashflowSpending'),
+                    data: cashflowSpendingData,
+                    backgroundColor: 'rgba(214, 84, 72, 0.74)',
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    stack: 'cashflow'
+                },
+                {
+                    label: i18next.t('cashflowExtras'),
+                    data: cashflowExtraCostData,
+                    backgroundColor: 'rgba(201, 155, 79, 0.82)',
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    stack: 'cashflow'
+                },
+                {
+                    type: 'line',
+                    label: i18next.t('cashflowNet'),
+                    data: cashflowNetData,
+                    borderColor: '#163f37',
+                    backgroundColor: '#163f37',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    tension: 0.25,
+                    yAxisID: 'y'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    top: 5,
+                    right: 5,
+                    bottom: 0,
+                    left: 0
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: { size: isMobile ? 11 : 13 },
+                        padding: isMobile ? 8 : 14,
+                        boxWidth: isMobile ? 18 : 28,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                        size: 14,
+                        weight: '600'
+                    },
+                    bodyFont: {
+                        size: 13
+                    },
+                    callbacks: {
+                        title: function(contexts) {
+                            const idx = contexts[0].dataIndex;
+                            return `${data.years[idx]}`;
+                        },
+                        label: function(context) {
+                            return `${context.dataset.label}: ${formatEuroAmount(context.parsed.y)}`;
+                        },
+                        footer: function(contexts) {
+                            const idx = contexts[0].dataIndex;
+                            const age1 = data.ages1[idx];
+                            const age2 = data.ages2[idx];
+                            const netValue = cashflowNetData[idx];
+                            const agesText = [age1 !== undefined ? i18next.t("person1") + `: ${age1}` + i18next.t('yearShort') : '', age2 !== undefined ? i18next.t("person2") + `: ${age2}` + i18next.t('yearShort') : ''].filter(Boolean).join(' | ');
+                            const netText = `${i18next.t('cashflowNet')}: ${formatEuroAmount(netValue)}`;
+                            return [netText, agesText].filter(Boolean).join(' | ');
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    stacked: true,
+                    title: {
+                        display: isMobile ? false : true,
+                        text: i18next.t('dateInYears'),
+                        font: {
+                            size: isMobile ? 10 : 12,
+                            weight: isMobile ? '400' : '600'
+                        },
+                        padding: { top: 10, bottom: 10 }
+                    },
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: { size: isMobile ? 10 : 12 },
+                        autoSkipPadding: isMobile ? 2 : 10,
+                        callback: function(value, index) {
+                            return getChartXAxisLabel(data, index, isMobile);
+                        }
+                    }
+                },
+                y: {
+                    stacked: true,
+                    title: {
+                        display: isMobile ? false : true,
+                        text: i18next.t('cashflowAxisLabel') + ' (€)',
+                        font: {
+                            size: 12,
+                            weight: '600'
+                        },
+                        padding: { top: 10, bottom: 10 }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    ticks: {
+                        font: { size: isMobile ? 10 : 12 },
+                        callback: function(value) {
+                            return formatCompactEuroAmount(value);
+                        }
+                    }
+                }
+            },
+            interaction: {
+                mode: 'index',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
 
+}
+
+function updatePortfolioSummary(mode, monteCarloAnalysis, stressDefinition, scenarioData, baseData) {
+    if (!portfolioChartSummary) {
+        return;
+    }
+
+    if (mode === 'monte-carlo' && monteCarloAnalysis) {
+        const summaryParts = [
+            i18next.t('analysisSummarySuccess', {
+                rate: Math.round(monteCarloAnalysis.successRate * 100),
+                count: monteCarloAnalysis.simulationCount
+            }),
+            i18next.t('analysisSummaryMedian', {
+                amount: formatEuroAmount(monteCarloAnalysis.finalP50)
+            }),
+            i18next.t('analysisSummaryDownside', {
+                amount: formatEuroAmount(monteCarloAnalysis.finalP10)
+            })
+        ];
+
+        portfolioChartSummary.textContent = summaryParts.join('  |  ');
+        return;
+    }
+
+    if (stressDefinition && scenarioData && baseData) {
+        const stressEndingValue = scenarioData.values[scenarioData.values.length - 1] || 0;
+        const baseEndingValue = baseData.values[baseData.values.length - 1] || 0;
+
+        portfolioChartSummary.textContent = i18next.t(stressDefinition.summaryKey, {
+            ending: formatEuroAmount(stressEndingValue),
+            delta: formatEuroAmount(stressEndingValue - baseEndingValue),
+            ...(stressDefinition.summaryParams || {})
+        });
+        return;
+    }
+
+    if (mode !== 'monte-carlo' || !monteCarloAnalysis) {
+        portfolioChartSummary.textContent = i18next.t('analysisSummaryDeterministic');
+        return;
+    }
+}
+
+function updateChart() {
+    const inputs = getSimulationInputs();
+    const analysisMode = getAnalysisMode();
+    const deterministicData = calculateScenarioPortfolioGrowth(inputs);
+    const stressDefinition = analysisMode.startsWith('stress-')
+        ? getStressScenarioDefinition(analysisMode, inputs)
+        : null;
+    const scenarioData = stressDefinition
+        ? calculateScenarioPortfolioGrowth(inputs, stressDefinition.scenario)
+        : deterministicData;
+    const chartData = analysisMode === 'monte-carlo' ? deterministicData : scenarioData;
+    const simulationCount = simulationCountSlider ? parseInt(simulationCountSlider.value, 10) : 500;
+    const returnVolatility = returnVolatilitySlider ? parseFloat(returnVolatilitySlider.value) : 12;
+    const inflationVolatility = inflationVolatilitySlider ? parseFloat(inflationVolatilitySlider.value) : 1;
+    const monteCarloAnalysis = analysisMode === 'monte-carlo'
+        ? runMonteCarloAnalysis(inputs, simulationCount, returnVolatility, inflationVolatility)
+        : null;
+
+    if (portfolioChart) {
+        portfolioChart.destroy();
+    }
+
+    if (cashflowChart) {
+        cashflowChart.destroy();
+    }
+
+    const showRealValues = showRealValuesCheckbox ? showRealValuesCheckbox.checked : false;
+    const inflationRate = inputs.inflation / 100;
+    const startYear = chartData.years[0];
+    const isMobile = window.innerWidth < 768;
+
+    const applyInflationAdjustment = (value, year) => {
+        if (value === null || value === undefined) return null;
+        if (!showRealValues) return value;
+        const yearsPassed = year - startYear;
+        return value / Math.pow(1 + inflationRate, yearsPassed);
+    };
+
+    const growthData = chartData.years.map(year => {
+        const growthIdx = chartData.growthYears.indexOf(year);
+        const value = growthIdx >= 0 ? chartData.growthValues[growthIdx] : null;
+        return applyInflationAdjustment(value, year);
+    });
+
+    const oneWorksData = chartData.years.map(year => {
+        const oneWorksIdx = chartData.oneWorksYears.indexOf(year);
+        const value = oneWorksIdx >= 0 ? chartData.oneWorksValues[oneWorksIdx] : null;
+        return applyInflationAdjustment(value, year);
+    });
+
+    const withdrawalData = chartData.years.map(year => {
+        const withdrawalIdx = chartData.withdrawalYears.indexOf(year);
+        const value = withdrawalIdx >= 0 ? chartData.withdrawalValues[withdrawalIdx] : null;
+        return applyInflationAdjustment(value, year);
+    });
+
+    const basePortfolioData = deterministicData.values.map((value, index) =>
+        applyInflationAdjustment(value, deterministicData.years[index])
+    );
+    const stressPortfolioData = scenarioData.values.map((value, index) =>
+        applyInflationAdjustment(value, scenarioData.years[index])
+    );
+    const cashflowContributionData = chartData.cashflowContributions.map((value, index) =>
+        applyInflationAdjustment(value, chartData.years[index])
+    );
+    const cashflowPensionData = chartData.cashflowPensions.map((value, index) =>
+        applyInflationAdjustment(value, chartData.years[index])
+    );
+    const cashflowSpendingData = chartData.cashflowSpending.map((value, index) =>
+        -applyInflationAdjustment(value, chartData.years[index])
+    );
+    const cashflowExtraCostData = chartData.cashflowExtras.map((value, index) =>
+        -applyInflationAdjustment(value, chartData.years[index])
+    );
+    const cashflowNetData = chartData.cashflowNet.map((value, index) =>
+        applyInflationAdjustment(value, chartData.years[index])
+    );
+
+    updateCashflowSummary(chartData);
+    updatePortfolioSummary(analysisMode, monteCarloAnalysis, stressDefinition, scenarioData, deterministicData);
+
+    const fireData = chartData.ages1.map(() => null);
+    if (chartData.fireAge !== null) {
+        const fireAgeIndex = chartData.ages1.indexOf(chartData.fireAge);
+        if (fireAgeIndex >= 0) {
+            fireData[fireAgeIndex] = chartData.fireValue;
+        }
+    }
+
+    let portfolioDatasets;
+
+    if (analysisMode === 'monte-carlo' && monteCarloAnalysis) {
+        const p10Data = monteCarloAnalysis.p10.map((value, index) =>
+            applyInflationAdjustment(value, deterministicData.years[index])
+        );
+        const p50Data = monteCarloAnalysis.p50.map((value, index) =>
+            applyInflationAdjustment(value, deterministicData.years[index])
+        );
+        const p90Data = monteCarloAnalysis.p90.map((value, index) =>
+            applyInflationAdjustment(value, deterministicData.years[index])
+        );
+
+        portfolioDatasets = [
+            {
+                label: i18next.t('portfolioMonteCarloP10'),
+                data: p10Data,
+                borderColor: 'rgba(29, 95, 82, 0.18)',
+                backgroundColor: 'rgba(29, 95, 82, 0)',
+                borderWidth: 1.5,
+                pointRadius: 0,
+                pointHoverRadius: 0,
+                tension: 0.25,
+                fill: false
+            },
+            {
+                label: i18next.t('portfolioMonteCarloP90'),
+                data: p90Data,
+                borderColor: 'rgba(29, 95, 82, 0.24)',
+                backgroundColor: 'rgba(29, 95, 82, 0.16)',
+                borderWidth: 1.5,
+                pointRadius: 0,
+                pointHoverRadius: 0,
+                tension: 0.25,
+                fill: '-1'
+            },
+            {
+                label: i18next.t('portfolioMonteCarloMedian'),
+                data: p50Data,
+                borderColor: '#163f37',
+                backgroundColor: '#163f37',
+                borderWidth: 3,
+                pointRadius: 0,
+                pointHoverRadius: 5,
+                tension: 0.25,
+                fill: false
+            },
+            {
+                label: i18next.t('portfolioBaseCase'),
+                data: basePortfolioData,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0)',
+                borderDash: [8, 6],
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                tension: 0.25,
+                fill: false
+            }
+        ];
+    } else if (stressDefinition) {
+        portfolioDatasets = [
+            {
+                label: i18next.t(stressDefinition.lineLabelKey),
+                data: stressPortfolioData,
+                borderColor: stressDefinition.color,
+                backgroundColor: 'rgba(0, 0, 0, 0)',
+                borderWidth: 3,
+                pointRadius: 0,
+                pointHoverRadius: 5,
+                tension: 0.28,
+                fill: false
+            },
+            {
+                label: i18next.t('portfolioBaseCase'),
+                data: basePortfolioData,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0)',
+                borderDash: [8, 6],
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                tension: 0.25,
+                fill: false
+            }
+        ];
+    } else {
+        portfolioDatasets = [
+            {
+                label: i18next.t('2_work'),
+                data: growthData,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#667eea',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                spanGaps: false
+            },
+            {
+                label: i18next.t('1_works'),
+                data: oneWorksData,
+                borderColor: 'green',
+                backgroundColor: 'rgba(141, 182, 147, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: 'green',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                spanGaps: false
+            },
+            {
+                label: i18next.t('0_work'),
+                data: withdrawalData,
+                borderColor: '#e74c3c',
+                backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#e74c3c',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                spanGaps: false
+            }
+        ];
+
+        if (chartData.fireAge !== null && fireData.some(value => value !== null)) {
+            portfolioDatasets.push({
+                label: i18next.t('fireReached'),
+                data: fireData,
+                borderColor: '#27ae60',
+                backgroundColor: '#27ae60',
+                borderWidth: 0,
+                pointRadius: 8,
+                pointHoverRadius: 10,
+                pointBackgroundColor: '#27ae60',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 3,
+                showLine: false,
+                spanGaps: false
+            });
+        }
+    }
+
+    portfolioChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartData.years,
+            datasets: portfolioDatasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    top: 5,
+                    right: 5,
+                    bottom: 0,
+                    left: 0
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: { size: isMobile ? 12 : 14 },
+                        padding: isMobile ? 8 : 15,
+                        boxWidth: isMobile ? 20 : 40
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                        size: 14,
+                        weight: '600'
+                    },
+                    bodyFont: {
+                        size: 13
+                    },
+                    callbacks: {
+                        title: function(contexts) {
+                            const idx = contexts[0].dataIndex;
+                            return `${chartData.years[idx]}`;
+                        },
+                        label: function(context) {
+                            const idx = context.dataIndex;
+                            const age1 = chartData.ages1[idx];
+                            const age2 = chartData.ages2[idx];
+                            const ages = [
+                                age1 !== undefined ? i18next.t('person1') + `: ${age1}` + i18next.t('yearShort') : '',
+                                age2 !== undefined ? i18next.t('person2') + `: ${age2}` + i18next.t('yearShort') : ''
+                            ].filter(Boolean).join(' | ');
+
+                            return `${context.dataset.label}: ${formatEuroAmount(context.parsed.y)}${ages ? ` (${ages})` : ''}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: isMobile ? false : true,
+                        text: i18next.t('dateInYears'),
+                        font: {
+                            size: isMobile ? 10 : 12,
+                            weight: isMobile ? '400' : '600'
+                        },
+                        padding: { top: 10, bottom: 10 }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    ticks: {
+                        font: { size: isMobile ? 10 : 12 },
+                        autoSkipPadding: isMobile ? 2 : 10,
+                        callback: function(value, index) {
+                            return getChartXAxisLabel(chartData, index, isMobile);
+                        }
+                    }
+                },
+                y: {
+                    title: {
+                        display: isMobile ? false : true,
+                        text: i18next.t('portfolioValue') + ' (â‚¬)',
+                        font: {
+                            size: 12,
+                            weight: '600'
+                        },
+                        padding: { top: 10, bottom: 10 }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    ticks: {
+                        font: { size: isMobile ? 10 : 12 },
+                        callback: function(value) {
+                            return formatCompactEuroAmount(value);
+                        }
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
+
+    cashflowChart = new Chart(cashflowCtx, {
+        type: 'bar',
+        data: {
+            labels: chartData.years,
+            datasets: [
+                {
+                    label: i18next.t('cashflowContributions'),
+                    data: cashflowContributionData,
+                    backgroundColor: 'rgba(102, 126, 234, 0.62)',
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    stack: 'cashflow'
+                },
+                {
+                    label: i18next.t('cashflowPensionIncome'),
+                    data: cashflowPensionData,
+                    backgroundColor: 'rgba(39, 174, 96, 0.6)',
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    stack: 'cashflow'
+                },
+                {
+                    label: i18next.t('cashflowSpending'),
+                    data: cashflowSpendingData,
+                    backgroundColor: 'rgba(214, 84, 72, 0.74)',
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    stack: 'cashflow'
+                },
+                {
+                    label: i18next.t('cashflowExtras'),
+                    data: cashflowExtraCostData,
+                    backgroundColor: 'rgba(201, 155, 79, 0.82)',
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    stack: 'cashflow'
+                },
+                {
+                    type: 'line',
+                    label: i18next.t('cashflowNet'),
+                    data: cashflowNetData,
+                    borderColor: '#163f37',
+                    backgroundColor: '#163f37',
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    tension: 0.25,
+                    yAxisID: 'y'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    top: 5,
+                    right: 5,
+                    bottom: 0,
+                    left: 0
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: { size: isMobile ? 11 : 13 },
+                        padding: isMobile ? 8 : 14,
+                        boxWidth: isMobile ? 18 : 28,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                        size: 14,
+                        weight: '600'
+                    },
+                    bodyFont: {
+                        size: 13
+                    },
+                    callbacks: {
+                        title: function(contexts) {
+                            const idx = contexts[0].dataIndex;
+                            return `${chartData.years[idx]}`;
+                        },
+                        label: function(context) {
+                            return `${context.dataset.label}: ${formatEuroAmount(context.parsed.y)}`;
+                        },
+                        footer: function(contexts) {
+                            const idx = contexts[0].dataIndex;
+                            const age1 = chartData.ages1[idx];
+                            const age2 = chartData.ages2[idx];
+                            const netValue = cashflowNetData[idx];
+                            const agesText = [
+                                age1 !== undefined ? i18next.t('person1') + `: ${age1}` + i18next.t('yearShort') : '',
+                                age2 !== undefined ? i18next.t('person2') + `: ${age2}` + i18next.t('yearShort') : ''
+                            ].filter(Boolean).join(' | ');
+                            const netText = `${i18next.t('cashflowNet')}: ${formatEuroAmount(netValue)}`;
+                            return [netText, agesText].filter(Boolean).join(' | ');
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    stacked: true,
+                    title: {
+                        display: isMobile ? false : true,
+                        text: i18next.t('dateInYears'),
+                        font: {
+                            size: isMobile ? 10 : 12,
+                            weight: isMobile ? '400' : '600'
+                        },
+                        padding: { top: 10, bottom: 10 }
+                    },
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: { size: isMobile ? 10 : 12 },
+                        autoSkipPadding: isMobile ? 2 : 10,
+                        callback: function(value, index) {
+                            return getChartXAxisLabel(chartData, index, isMobile);
+                        }
+                    }
+                },
+                y: {
+                    stacked: true,
+                    title: {
+                        display: isMobile ? false : true,
+                        text: i18next.t('cashflowAxisLabel') + ' (â‚¬)',
+                        font: {
+                            size: 12,
+                            weight: '600'
+                        },
+                        padding: { top: 10, bottom: 10 }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    ticks: {
+                        font: { size: isMobile ? 10 : 12 },
+                        callback: function(value) {
+                            return formatCompactEuroAmount(value);
+                        }
+                    }
+                }
+            },
+            interaction: {
+                mode: 'index',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
 }
 
 // Update value displays
@@ -708,15 +2234,16 @@ function updateValueDisplays() {
     monthlyPensionValue.textContent = formatEuroAmount(monthlyPensionSlider.value);
     pensionAge2Value.textContent = pensionAge2Slider.value;
     monthlyPension2Value.textContent = formatEuroAmount(monthlyPension2Slider.value);
-    cost1Value.textContent = formatEuroAmount(cost1Slider.value);
-    cost1BeginYearValue.textContent = cost1BeginYearSlider.value;
-    cost1EndYearValue.textContent = cost1EndYearSlider.value;
-    cost2Value.textContent = formatEuroAmount(cost2Slider.value);
-    cost2BeginYearValue.textContent = cost2BeginYearSlider.value;
-    cost2EndYearValue.textContent = cost2EndYearSlider.value;
-    cost3Value.textContent = formatEuroAmount(cost3Slider.value);
-    cost3BeginYearValue.textContent = cost3BeginYearSlider.value;
-    cost3EndYearValue.textContent = cost3EndYearSlider.value;    
+    if (simulationCountValue && simulationCountSlider) {
+        simulationCountValue.textContent = simulationCountSlider.value;
+    }
+    if (returnVolatilityValue && returnVolatilitySlider) {
+        returnVolatilityValue.textContent = parseFloat(returnVolatilitySlider.value).toFixed(1);
+    }
+    if (inflationVolatilityValue && inflationVolatilitySlider) {
+        inflationVolatilityValue.textContent = parseFloat(inflationVolatilitySlider.value).toFixed(1);
+    }
+    toggleAnalysisSettings();
 }
 
 // Event listeners
@@ -847,81 +2374,101 @@ monthlyPension2Slider.addEventListener('input', function() {
     updateChart();
 });
 
-cost1Slider.addEventListener('input', function() {
+showRealValuesCheckbox.addEventListener('change', function() {
+    localStorage.setItem(SHOW_REAL_VALUES_STORAGE_KEY, String(showRealValuesCheckbox.checked));
+    updateChart();
+});
+
+analysisModeSelect.addEventListener('change', function() {
+    localStorage.setItem(ANALYSIS_MODE_STORAGE_KEY, analysisModeSelect.value);
     updateValueDisplays();
     updateChart();
 });
 
-cost1BeginYearSlider.addEventListener('input', function() {    
-    if (parseInt(this.value) > parseInt(cost1EndYearSlider.value)) {
-        cost1EndYearSlider.value = parseInt(this.value);
-        cost1EndYearValue.textContent = cost1EndYearSlider.value;
+simulationCountSlider.addEventListener('input', function() {
+    updateValueDisplays();
+    updateChart();
+});
+
+returnVolatilitySlider.addEventListener('input', function() {
+    updateValueDisplays();
+    updateChart();
+});
+
+inflationVolatilitySlider.addEventListener('input', function() {
+    updateValueDisplays();
+    updateChart();
+});
+
+extraCostPresetButtons.forEach(button => {
+    button.addEventListener('click', function() {
+        addExtraCost(button.dataset.extraCostPreset || 'other');
+    });
+});
+
+chartViewButtons.forEach(button => {
+    button.addEventListener('click', function() {
+        setChartMobileView(button.dataset.chartView);
+    });
+});
+
+addCustomCostButton.addEventListener('click', function() {
+    addExtraCost('other');
+});
+
+extraCostsList.addEventListener('input', function(event) {
+    const target = event.target;
+    const card = target.closest('[data-cost-id]');
+
+    if (!card || !target.matches('[data-field]')) {
+        return;
     }
-    updateValueDisplays();
-    updateChart();
-});
 
-cost1EndYearSlider.addEventListener('input', function() {
-    if (parseInt(this.value) < parseInt(cost1BeginYearSlider.value)) {
-        cost1EndYearSlider.value = parseInt(cost1BeginYearSlider.value);
-        cost1EndYearValue.textContent = cost1BeginYearSlider.value;
+    const cost = extraCosts.find(item => item.id === card.dataset.costId);
+
+    if (!cost) {
+        return;
     }
-    updateValueDisplays();
+
+    const field = target.dataset.field;
+    applyExtraCostFieldUpdate(cost, field, target.value);
+
+    saveExtraCostsToStorage();
+    syncExtraCostCard(cost.id);
     updateChart();
 });
 
-cost2Slider.addEventListener('input', function() {
-    updateValueDisplays();
-    updateChart();
-});
+extraCostsList.addEventListener('change', function(event) {
+    const target = event.target;
+    const card = target.closest('[data-cost-id]');
 
-cost2BeginYearSlider.addEventListener('input', function() {    
-    if (parseInt(this.value) > parseInt(cost2EndYearSlider.value)) {
-        cost2EndYearSlider.value = parseInt(this.value);
-        cost2EndYearValue.textContent = cost2EndYearSlider.value;
+    if (!card || !target.matches('[data-field]')) {
+        return;
     }
-    updateValueDisplays();
-    updateChart();
-});
 
-cost2EndYearSlider.addEventListener('input', function() {
-    if (parseInt(this.value) < parseInt(cost2BeginYearSlider.value)) {
-        cost2EndYearSlider.value = parseInt(cost2BeginYearSlider.value);
-        cost2EndYearValue.textContent = cost2BeginYearSlider.value;
+    const cost = extraCosts.find(item => item.id === card.dataset.costId);
+
+    if (!cost) {
+        return;
     }
-    updateValueDisplays();
+
+    const field = target.dataset.field;
+    applyExtraCostFieldUpdate(cost, field, target.value);
+
+    saveExtraCostsToStorage();
+    syncExtraCostCard(cost.id);
     updateChart();
 });
 
-cost3Slider.addEventListener('input', function() {
-    updateValueDisplays();
-    updateChart();
-});
+extraCostsList.addEventListener('focusin', function(event) {
+    const target = event.target;
 
-cost3BeginYearSlider.addEventListener('input', function() {
-    if (parseInt(this.value) > parseInt(cost3EndYearSlider.value)) {
-        cost3EndYearSlider.value = parseInt(this.value);
-        cost3EndYearValue.textContent = cost3EndYearSlider.value;
+    if (target.matches('input[data-field="amount"]')) {
+        target.select();
     }
-    updateValueDisplays();
-    updateChart();
-});
-
-cost3EndYearSlider.addEventListener('input', function() {
-    if (parseInt(this.value) < parseInt(cost3BeginYearSlider.value)) {
-        cost3EndYearSlider.value = parseInt(cost3BeginYearSlider.value);
-        cost3EndYearValue.textContent = cost3BeginYearSlider.value;
-    }
-    updateValueDisplays();
-    updateChart();
-});
-
-document.getElementById('showRealValues').addEventListener('change', function() {
-    updateChart();
 });
 
 document.addEventListener("DOMContentLoaded", function() {
-    
     // Selecteer alle sliders op de pagina
     const sliders = document.querySelectorAll('input[type="range"]');
 
@@ -944,6 +2491,21 @@ document.addEventListener("DOMContentLoaded", function() {
         slider.addEventListener('input', function(event) {
             localStorage.setItem(slider.id, event.target.value);
         });
-    });    
-    
+    });
+
+    const savedRealValuesSetting = localStorage.getItem(SHOW_REAL_VALUES_STORAGE_KEY);
+    if (savedRealValuesSetting !== null) {
+        showRealValuesCheckbox.checked = savedRealValuesSetting === 'true';
+    }
+
+    const savedAnalysisMode = localStorage.getItem(ANALYSIS_MODE_STORAGE_KEY);
+    if (new Set(['deterministic', 'monte-carlo', 'stress-bear', 'stress-inflation', 'stress-extra-cost', 'stress-pension']).has(savedAnalysisMode)) {
+        analysisModeSelect.value = savedAnalysisMode;
+    }
+
+    setChartMobileView(activeChartView);
+    extraCosts = loadExtraCostsFromStorage();
+    renderExtraCosts();
+    updateValueDisplays();
+    updateChart();
 });
