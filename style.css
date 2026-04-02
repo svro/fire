@@ -108,7 +108,7 @@ body {
     grid-template-columns: minmax(250px, 280px) minmax(0, 1fr) minmax(250px, 280px);
     grid-template-areas:
         "person1 chart person2"
-        "person1 settings person2";
+        "settings settings settings";
     gap: 24px;
     align-items: start;
     min-height: calc(100vh - 48px);

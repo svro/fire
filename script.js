@@ -647,7 +647,7 @@ function getStressScenarioDefinition(mode, inputs) {
             color: '#8d5a2b',
             summaryParams: {
                 year: shockYear,
-                amount: formatEuroAmount(shockAmount)
+                amount: shockAmount
             },
             scenario: {
                 extraCostShocks: {
@@ -761,10 +761,12 @@ function getChartXAxisLabel(data, index, isMobile) {
     ];
 }
 
-function updateCashflowSummary(data) {
+function updateCashflowSummary(data, helpers = {}) {
     if (!cashflowChartSummary) {
         return;
     }
+
+    const formatAmountForYear = helpers.formatAmountForYear || ((value) => formatEuroAmount(value));
 
     const worstNetValue = Math.min(...data.cashflowNet);
     const worstNetIndex = data.cashflowNet.indexOf(worstNetValue);
@@ -776,7 +778,7 @@ function updateCashflowSummary(data) {
         summaryParts.push(
             i18next.t('cashflowSummaryWorst', {
                 year: data.years[worstNetIndex],
-                amount: formatEuroAmount(worstNetValue)
+                amount: formatAmountForYear(worstNetValue, data.years[worstNetIndex])
             })
         );
     }
@@ -1662,22 +1664,25 @@ function updateChart() {
 
 }
 
-function updatePortfolioSummary(mode, monteCarloAnalysis, stressDefinition, scenarioData, baseData) {
+function updatePortfolioSummary(mode, monteCarloAnalysis, stressDefinition, scenarioData, baseData, helpers = {}) {
     if (!portfolioChartSummary) {
         return;
     }
 
+    const formatAmountForYear = helpers.formatAmountForYear || ((value) => formatEuroAmount(value));
+
     if (mode === 'monte-carlo' && monteCarloAnalysis) {
+        const finalYear = baseData && baseData.years.length ? baseData.years[baseData.years.length - 1] : new Date().getFullYear();
         const summaryParts = [
             i18next.t('analysisSummarySuccess', {
                 rate: Math.round(monteCarloAnalysis.successRate * 100),
                 count: monteCarloAnalysis.simulationCount
             }),
             i18next.t('analysisSummaryMedian', {
-                amount: formatEuroAmount(monteCarloAnalysis.finalP50)
+                amount: formatAmountForYear(monteCarloAnalysis.finalP50, finalYear)
             }),
             i18next.t('analysisSummaryDownside', {
-                amount: formatEuroAmount(monteCarloAnalysis.finalP10)
+                amount: formatAmountForYear(monteCarloAnalysis.finalP10, finalYear)
             })
         ];
 
@@ -1688,11 +1693,19 @@ function updatePortfolioSummary(mode, monteCarloAnalysis, stressDefinition, scen
     if (stressDefinition && scenarioData && baseData) {
         const stressEndingValue = scenarioData.values[scenarioData.values.length - 1] || 0;
         const baseEndingValue = baseData.values[baseData.values.length - 1] || 0;
+        const finalYear = scenarioData.years[scenarioData.years.length - 1];
 
         portfolioChartSummary.textContent = i18next.t(stressDefinition.summaryKey, {
-            ending: formatEuroAmount(stressEndingValue),
-            delta: formatEuroAmount(stressEndingValue - baseEndingValue),
-            ...(stressDefinition.summaryParams || {})
+            ending: formatAmountForYear(stressEndingValue, finalYear),
+            delta: formatAmountForYear(stressEndingValue - baseEndingValue, finalYear),
+            ...(stressDefinition.summaryParams
+                ? {
+                    ...stressDefinition.summaryParams,
+                    amount: typeof stressDefinition.summaryParams.amount === 'number'
+                        ? formatAmountForYear(stressDefinition.summaryParams.amount, stressDefinition.summaryParams.year)
+                        : stressDefinition.summaryParams.amount
+                }
+                : {})
         });
         return;
     }
@@ -1740,6 +1753,7 @@ function updateChart() {
         const yearsPassed = year - startYear;
         return value / Math.pow(1 + inflationRate, yearsPassed);
     };
+    const formatAmountForYear = (value, year) => formatEuroAmount(applyInflationAdjustment(value, year));
 
     const growthData = chartData.years.map(year => {
         const growthIdx = chartData.growthYears.indexOf(year);
@@ -1781,8 +1795,8 @@ function updateChart() {
         applyInflationAdjustment(value, chartData.years[index])
     );
 
-    updateCashflowSummary(chartData);
-    updatePortfolioSummary(analysisMode, monteCarloAnalysis, stressDefinition, scenarioData, deterministicData);
+    updateCashflowSummary(chartData, { formatAmountForYear });
+    updatePortfolioSummary(analysisMode, monteCarloAnalysis, stressDefinition, scenarioData, deterministicData, { formatAmountForYear });
 
     const fireData = chartData.ages1.map(() => null);
     if (chartData.fireAge !== null) {
