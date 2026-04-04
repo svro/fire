@@ -749,6 +749,7 @@ table {
     }
 
     .main-content.is-solo {
+        grid-template-columns: 1fr;
         grid-template-areas:
             "chart"
             "person1"
@@ -775,17 +776,21 @@ table {
 
     .app-toolbar {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: center;
+        grid-template-columns: minmax(0, 1fr) max-content;
+        align-items: stretch;
         gap: 8px;
         padding: 14px 14px 0;
     }
 
     .household-switcher {
+        display: block;
+        width: 100%;
         min-width: 0;
     }
 
     .household-switcher-options {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         width: 100%;
         min-width: 0;
         gap: 3px;
@@ -793,8 +798,9 @@ table {
     }
 
     .language-switcher {
-        width: auto;
-        max-width: none;
+        display: grid;
+        grid-template-columns: repeat(4, 30px);
+        width: max-content;
         justify-self: end;
         gap: 3px;
         padding: 4px;
@@ -812,9 +818,10 @@ table {
     }
 
     .language-option {
-        min-width: 0;
+        width: 30px;
+        min-width: 30px;
         min-height: 34px;
-        padding: 7px 8px;
+        padding: 7px 0;
         font-size: 0.72rem;
         letter-spacing: 0.02em;
     }
