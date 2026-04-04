@@ -1,6 +1,6 @@
-# Fire
+# FIRE Planner
 
-Static FIRE calculator for solo users and couples in Europe.
+Static FIRE planner for solo users and couples in Europe.
 
 The app models long-term portfolio growth and drawdown for one or two people, with support for pensions, inflation, extra costs, multiple analysis modes, and four interface languages.
 
