@@ -774,35 +774,41 @@ table {
     }
 
     .app-toolbar {
-        flex-wrap: nowrap;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
         gap: 8px;
         padding: 14px 14px 0;
     }
 
     .household-switcher {
-        flex: 0 0 auto;
+        min-width: 0;
     }
 
-    .household-switcher-options,
-    .language-switcher {
-        width: auto;
-        max-width: none;
+    .household-switcher-options {
+        width: 100%;
+        min-width: 0;
         gap: 3px;
         padding: 4px;
     }
 
     .language-switcher {
-        flex: 0 0 auto;
+        width: auto;
+        max-width: none;
+        justify-self: end;
+        gap: 3px;
+        padding: 4px;
     }
 
     .household-option {
+        width: 100%;
         min-width: 0;
         min-height: 34px;
         padding: 7px 8px;
         font-size: 0.72rem;
         white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .language-option {
@@ -811,6 +817,10 @@ table {
         padding: 7px 8px;
         font-size: 0.72rem;
         letter-spacing: 0.02em;
+    }
+
+    .app-toolbar > * {
+        min-width: 0;
     }
 
     .main-content {
