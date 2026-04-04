@@ -239,7 +239,7 @@ test('extra costs are applied only within their configured year range', () => {
     assert.deepEqual(plain(result.cashflowNet), [0, 90, 40, -80, -80]);
 });
 
-test('stress extra cost scenario schedules the expected shock year and amount', () => {
+test('stress extra cost scenario inflates the shock amount to the target year', () => {
     const api = loadSimulationApi();
     api.resetExtraCosts();
 
@@ -247,15 +247,55 @@ test('stress extra cost scenario schedules the expected shock year and amount', 
         ...createBaseInputs(),
         endAge1: 42,
         endAge2: 42,
-        annualSpending: 40000
+        annualSpending: 40000,
+        inflation: 2
     };
 
     const definition = api.getStressScenarioDefinition('stress-extra-cost', inputs);
     const startYear = new Date().getFullYear();
+    const expectedShockAmount = 30000 * Math.pow(1.02, 5);
 
-    assert.equal(definition.summaryParams.amount, 30000);
     assert.equal(definition.summaryParams.year, startYear + 5);
-    assert.deepEqual(plain(definition.scenario.extraCostShocks), { 5: 30000 });
+    assertAlmostEqual(definition.summaryParams.amount, expectedShockAmount);
+    assertAlmostEqual(definition.scenario.extraCostShocks[5], expectedShockAmount);
+});
+
+test('stress bear after 5 years delays the bad return sequence until years 6-8', () => {
+    const api = loadSimulationApi();
+    api.resetExtraCosts();
+
+    const inputs = {
+        ...createBaseInputs(),
+        endAge1: 45,
+        endAge2: 45,
+        annualReturn: 4
+    };
+
+    const definition = api.getStressScenarioDefinition('stress-bear-5', inputs);
+
+    assertArrayAlmostEqual(
+        definition.scenario.annualReturnRates.slice(0, 8),
+        [0.04, 0.04, 0.04, 0.04, 0.04, -0.18, -0.1, 0]
+    );
+});
+
+test('stress bear after 10 years delays the bad return sequence until years 11-13', () => {
+    const api = loadSimulationApi();
+    api.resetExtraCosts();
+
+    const inputs = {
+        ...createBaseInputs(),
+        endAge1: 50,
+        endAge2: 50,
+        annualReturn: 4
+    };
+
+    const definition = api.getStressScenarioDefinition('stress-bear-10', inputs);
+
+    assertArrayAlmostEqual(
+        definition.scenario.annualReturnRates.slice(0, 13),
+        [0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, -0.18, -0.1, 0]
+    );
 });
 
 test('Monte Carlo with zero volatility matches the deterministic projection exactly', () => {

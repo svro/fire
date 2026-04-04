@@ -668,6 +668,8 @@ function getAnalysisMode() {
         'deterministic',
         'monte-carlo',
         'stress-bear',
+        'stress-bear-5',
+        'stress-bear-10',
         'stress-inflation',
         'stress-extra-cost',
         'stress-pension'
@@ -686,12 +688,20 @@ function toggleAnalysisSettings() {
     analysisAdvancedSettings.classList.toggle('is-hidden', getAnalysisMode() !== 'monte-carlo');
 }
 
+function buildDelayedBearReturnRates(inputs, delayYears) {
+    const baseAnnualReturnRate = inputs.annualReturn / 100;
+
+    return Array.from({ length: Math.max(0, delayYears) }, () => baseAnnualReturnRate)
+        .concat([-0.18, -0.1, 0]);
+}
+
 function getStressScenarioDefinition(mode, inputs) {
     const simulationStartYear = new Date().getFullYear();
     const householdMode = normalizeHouseholdMode(inputs.householdMode);
     const shockYearOffset = Math.min(5, Math.max(1, getProjectionDuration(inputs) - 1));
     const shockYear = simulationStartYear + shockYearOffset;
     const shockAmount = Math.max(25000, Math.round(inputs.annualSpending * 0.75 / 1000) * 1000);
+    const shockAmountNominal = shockAmount * (buildInflationFactors(shockYearOffset, [], inputs.inflation / 100)[shockYearOffset] || 1);
 
     const definitions = {
         'stress-bear': {
@@ -700,9 +710,25 @@ function getStressScenarioDefinition(mode, inputs) {
             summaryKey: 'stressSummaryBear',
             color: '#b24a3f',
             scenario: {
-                annualReturnRates: [-0.18, -0.1, 0].map((rate, index) => rate).concat(
-                    Array.from({ length: Math.max(0, getProjectionDuration(inputs) - 3) }, () => inputs.annualReturn / 100)
-                )
+                annualReturnRates: buildDelayedBearReturnRates(inputs, 0)
+            }
+        },
+        'stress-bear-5': {
+            labelKey: 'analysisModeStressBear5',
+            lineLabelKey: 'stressLineBear5',
+            summaryKey: 'stressSummaryBear5',
+            color: '#9c5144',
+            scenario: {
+                annualReturnRates: buildDelayedBearReturnRates(inputs, 5)
+            }
+        },
+        'stress-bear-10': {
+            labelKey: 'analysisModeStressBear10',
+            lineLabelKey: 'stressLineBear10',
+            summaryKey: 'stressSummaryBear10',
+            color: '#7f3d35',
+            scenario: {
+                annualReturnRates: buildDelayedBearReturnRates(inputs, 10)
             }
         },
         'stress-inflation': {
@@ -723,11 +749,11 @@ function getStressScenarioDefinition(mode, inputs) {
             color: '#8d5a2b',
             summaryParams: {
                 year: shockYear,
-                amount: shockAmount
+                amount: shockAmountNominal
             },
             scenario: {
                 extraCostShocks: {
-                    [shockYearOffset]: shockAmount
+                    [shockYearOffset]: shockAmountNominal
                 }
             }
         },
@@ -1930,7 +1956,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     const savedAnalysisMode = localStorage.getItem(ANALYSIS_MODE_STORAGE_KEY);
-    if (new Set(['deterministic', 'monte-carlo', 'stress-bear', 'stress-inflation', 'stress-extra-cost', 'stress-pension']).has(savedAnalysisMode)) {
+    if (new Set(['deterministic', 'monte-carlo', 'stress-bear', 'stress-bear-5', 'stress-bear-10', 'stress-inflation', 'stress-extra-cost', 'stress-pension']).has(savedAnalysisMode)) {
         analysisModeSelect.value = savedAnalysisMode;
     }
 
