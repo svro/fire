@@ -177,6 +177,7 @@ function assertArrayAlmostEqual(actual, expected, epsilon = 1e-9) {
 
 function createBaseInputs() {
     return {
+        householdMode: 'couple',
         currentAge1: 30,
         retirementAge1: 32,
         endAge1: 34,
@@ -420,4 +421,57 @@ test('one-time and yearly extra costs remain distinct in yearly cashflow output'
 
     assert.deepEqual(plain(result.cashflowExtras), [0, 10, 20, 20, 0]);
     assert.deepEqual(plain(result.values), [1000, 1090, 1120, 1020, 940]);
+});
+
+test('solo mode uses only person 1 duration and keeps working contributions until retirement', () => {
+    const api = loadSimulationApi();
+    api.resetExtraCosts();
+
+    const result = api.calculateScenarioPortfolioGrowth({
+        ...createBaseInputs(),
+        householdMode: 'solo',
+        retirementAge1: 32,
+        endAge1: 34,
+        currentAge2: 30,
+        retirementAge2: 60,
+        endAge2: 90,
+        annualContribution: 100,
+        annualContribution2: 999,
+        annualSpending: 80
+    });
+
+    assert.deepEqual(plain(result.years).length, 5);
+    assert.deepEqual(plain(result.cashflowContributions), [0, 100, 100, 0, 0]);
+    assert.deepEqual(plain(result.cashflowNet), [0, 100, 100, -80, -80]);
+    assert.deepEqual(plain(result.ages2), [null, null, null, null, null]);
+});
+
+test('solo mode does not add hidden partner pension income', () => {
+    const api = loadSimulationApi();
+    api.resetExtraCosts();
+
+    const result = api.calculateScenarioPortfolioGrowth({
+        ...createBaseInputs(),
+        householdMode: 'solo',
+        currentAge1: 64,
+        retirementAge1: 64,
+        endAge1: 66,
+        currentAge2: 64,
+        retirementAge2: 64,
+        endAge2: 90,
+        pensionAge: 65,
+        monthlyPension: 100,
+        pensionAge2: 65,
+        monthlyPension2: 1000,
+        currentAssets: 0,
+        annualContribution: 0,
+        annualContribution2: 0,
+        annualSpending: 1200,
+        annualReturn: 0,
+        inflation: 0
+    });
+
+    assert.deepEqual(plain(result.cashflowPensions), [0, 1200, 1200]);
+    assert.deepEqual(plain(result.cashflowNet), [0, 0, 0]);
+    assert.deepEqual(plain(result.values), [0, 0, 0]);
 });

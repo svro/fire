@@ -55,8 +55,60 @@ body {
 
 .app-toolbar {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
     padding: 18px 24px 0;
+}
+
+.household-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+}
+
+.household-switcher-options {
+    display: inline-grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    box-shadow: 0 10px 24px rgba(24, 50, 45, 0.08);
+    backdrop-filter: blur(12px);
+}
+
+.household-option {
+    min-width: 88px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.household-option:hover,
+.household-option:focus-visible {
+    background: rgba(29, 95, 82, 0.08);
+    color: var(--accent-strong);
+    outline: none;
+}
+
+.household-option.is-active {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+    color: #ffffff;
+    box-shadow: 0 8px 18px rgba(29, 95, 82, 0.22);
+}
+
+.household-option:active {
+    transform: translateY(1px);
 }
 
 .language-switcher {
@@ -115,6 +167,13 @@ body {
     padding: 24px;
 }
 
+.main-content.is-solo {
+    grid-template-columns: minmax(250px, 280px) minmax(0, 1fr);
+    grid-template-areas:
+        "person1 chart"
+        "settings settings";
+}
+
 .person1-panel,
 .person2-panel,
 .chart-panel,
@@ -132,6 +191,31 @@ body {
     grid-area: chart;
     display: grid;
     gap: 18px;
+}
+
+@media (min-width: 1241px) {
+    .chart-panel {
+        margin-top: -70px;
+        display: flex;
+        flex-direction: column;
+        align-self: stretch;
+        min-height: 912px;
+    }
+
+    .chart-wrapper {
+        height: auto;
+        min-height: 0;
+        flex: 1 1 0;
+    }
+
+    .chart-wrapper--cashflow {
+        flex: 1.05 1 0;
+    }
+
+    .person1-panel > details,
+    .person2-panel > details {
+        min-height: 828px;
+    }
 }
 
 .chart-view-switcher {
@@ -180,6 +264,10 @@ body {
 
 .analysis-advanced-settings.is-hidden {
     display: none;
+}
+
+.is-hidden {
+    display: none !important;
 }
 
 .person2-panel {
@@ -660,6 +748,13 @@ table {
         min-height: auto;
     }
 
+    .main-content.is-solo {
+        grid-template-areas:
+            "chart"
+            "person1"
+            "settings";
+    }
+
     .settings-panel {
         grid-template-columns: 1fr;
     }
@@ -679,20 +774,43 @@ table {
     }
 
     .app-toolbar {
+        flex-wrap: nowrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
         padding: 14px 14px 0;
     }
 
+    .household-switcher {
+        flex: 0 0 auto;
+    }
+
+    .household-switcher-options,
     .language-switcher {
-        width: 100%;
-        max-width: 320px;
-        gap: 4px;
-        padding: 5px;
+        width: auto;
+        max-width: none;
+        gap: 3px;
+        padding: 4px;
+    }
+
+    .language-switcher {
+        flex: 0 0 auto;
+    }
+
+    .household-option {
+        min-width: 0;
+        min-height: 34px;
+        padding: 7px 8px;
+        font-size: 0.72rem;
+        white-space: nowrap;
     }
 
     .language-option {
         min-width: 0;
-        padding: 8px 0;
-        font-size: 0.78rem;
+        min-height: 34px;
+        padding: 7px 8px;
+        font-size: 0.72rem;
+        letter-spacing: 0.02em;
     }
 
     .main-content {

@@ -46,6 +46,11 @@ function vertaalPagina() {
 }
 
 const languageButtons = document.querySelectorAll('[data-language-option]');
+const householdModeButtons = document.querySelectorAll('[data-household-mode]');
+
+function normalizeHouseholdMode(value) {
+    return value === 'solo' ? 'solo' : 'couple';
+}
 
 function updateLanguageSwitcher() {
     const activeLanguage = i18next.resolvedLanguage || i18next.language || userLang;
@@ -57,10 +62,66 @@ function updateLanguageSwitcher() {
     });
 }
 
+function getHouseholdMode() {
+    return householdMode;
+}
+
+function updateHouseholdModeSwitcher() {
+    const activeMode = getHouseholdMode();
+
+    householdModeButtons.forEach(button => {
+        const isActive = button.dataset.householdMode === activeMode;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', String(isActive));
+    });
+}
+
+function applyHouseholdModeUI() {
+    const isSolo = getHouseholdMode() === 'solo';
+
+    if (mainContent) {
+        mainContent.classList.toggle('is-solo', isSolo);
+    }
+
+    if (person2Panel) {
+        person2Panel.classList.toggle('is-hidden', isSolo);
+    }
+
+    if (annualContribution2Row) {
+        annualContribution2Row.classList.toggle('is-hidden', isSolo);
+    }
+
+    if (commonSettingsSummary) {
+        commonSettingsSummary.setAttribute('data-i18n', isSolo ? 'settings' : 'commonSettings');
+    }
+
+    if (annualContributionLabel) {
+        annualContributionLabel.setAttribute('data-i18n', isSolo ? 'annualContributionSolo' : 'annualContribution2Work');
+    }
+
+    if (annualSpendingLabel) {
+        annualSpendingLabel.setAttribute('data-i18n', isSolo ? 'annualSpendingSolo' : 'annualContribution0Work');
+    }
+}
+
+function setHouseholdMode(nextMode, options = {}) {
+    householdMode = normalizeHouseholdMode(nextMode);
+    localStorage.setItem(HOUSEHOLD_MODE_STORAGE_KEY, householdMode);
+
+    if (options.refresh !== false) {
+        updateUI();
+    } else {
+        applyHouseholdModeUI();
+        updateHouseholdModeSwitcher();
+    }
+}
+
 // 3. Functie om alle teksten in de interface te updaten
 function updateUI() {
+    applyHouseholdModeUI();
     vertaalPagina();
     updateLanguageSwitcher();
+    updateHouseholdModeSwitcher();
     renderExtraCosts();
     toggleAnalysisSettings();
     setChartMobileView(activeChartView);
@@ -83,6 +144,12 @@ function veranderTaal(nieuweTaal) {
 languageButtons.forEach(button => {
     button.addEventListener('click', () => {
         veranderTaal(button.dataset.languageOption);
+    });
+});
+
+householdModeButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        setHouseholdMode(button.dataset.householdMode);
     });
 });
 
@@ -113,6 +180,12 @@ const extraCostsList = document.getElementById('extraCostsList');
 const extraCostsEmptyState = document.getElementById('extraCostsEmptyState');
 const addCustomCostButton = document.getElementById('addCustomCostButton');
 const extraCostPresetButtons = document.querySelectorAll('[data-extra-cost-preset]');
+const mainContent = document.getElementById('mainContent');
+const person2Panel = document.getElementById('person2Panel');
+const commonSettingsSummary = document.getElementById('commonSettingsSummary');
+const annualContributionLabel = document.getElementById('annualContributionLabel');
+const annualContribution2Row = document.getElementById('annualContribution2Row');
+const annualSpendingLabel = document.getElementById('annualSpendingLabel');
 const chartPanel = document.querySelector('.chart-panel');
 const chartViewButtons = document.querySelectorAll('[data-chart-view]');
 const portfolioChartSummary = document.getElementById('portfolioChartSummary');
@@ -148,11 +221,13 @@ const EXTRA_COSTS_STORAGE_KEY = 'fireExtraCosts';
 const SHOW_REAL_VALUES_STORAGE_KEY = 'showRealValues';
 const CHART_VIEW_STORAGE_KEY = 'activeChartView';
 const ANALYSIS_MODE_STORAGE_KEY = 'analysisMode';
+const HOUSEHOLD_MODE_STORAGE_KEY = 'householdMode';
 const EXTRA_COST_YEAR_MIN = new Date().getFullYear();
 const EXTRA_COST_YEAR_MAX = EXTRA_COST_YEAR_MIN + 60;
 
 let extraCosts = []; // array van { id, preset, label, type, amount, startYear, endYear }
 let activeChartView = localStorage.getItem(CHART_VIEW_STORAGE_KEY) || 'portfolio';
+let householdMode = normalizeHouseholdMode(localStorage.getItem(HOUSEHOLD_MODE_STORAGE_KEY));
 
 // Format number with spaces as thousand separators (European style)
 function formatNumber(num) {
@@ -613,6 +688,7 @@ function toggleAnalysisSettings() {
 
 function getStressScenarioDefinition(mode, inputs) {
     const simulationStartYear = new Date().getFullYear();
+    const householdMode = normalizeHouseholdMode(inputs.householdMode);
     const shockYearOffset = Math.min(5, Math.max(1, getProjectionDuration(inputs) - 1));
     const shockYear = simulationStartYear + shockYearOffset;
     const shockAmount = Math.max(25000, Math.round(inputs.annualSpending * 0.75 / 1000) * 1000);
@@ -658,7 +734,7 @@ function getStressScenarioDefinition(mode, inputs) {
         'stress-pension': {
             labelKey: 'analysisModeStressPension',
             lineLabelKey: 'stressLinePension',
-            summaryKey: 'stressSummaryPension',
+            summaryKey: householdMode === 'solo' ? 'stressSummaryPensionSolo' : 'stressSummaryPension',
             color: '#7a4fa3',
             scenario: {
                 pension1Multiplier: 0.8,
@@ -675,17 +751,20 @@ function clamp(value, min, max) {
 }
 
 function getSimulationInputs() {
+    const mode = getHouseholdMode();
+
     return {
+        householdMode: mode,
         currentAge1: parseInt(currentAge1Slider.value, 10),
         retirementAge1: parseInt(retirementAge1Slider.value, 10),
         endAge1: parseInt(endAge1Slider.value, 10),
-        currentAge2: parseInt(currentAge2Slider.value, 10),
-        retirementAge2: parseInt(retirementAge2Slider.value, 10),
-        endAge2: parseInt(endAge2Slider.value, 10),
+        currentAge2: mode === 'couple' ? parseInt(currentAge2Slider.value, 10) : parseInt(currentAge1Slider.value, 10),
+        retirementAge2: mode === 'couple' ? parseInt(retirementAge2Slider.value, 10) : parseInt(currentAge1Slider.value, 10),
+        endAge2: mode === 'couple' ? parseInt(endAge2Slider.value, 10) : parseInt(currentAge1Slider.value, 10),
         pensionAge: parseInt(pensionAgeSlider.value, 10),
         monthlyPension: parseFloat(monthlyPensionSlider.value),
-        pensionAge2: parseInt(pensionAge2Slider.value, 10),
-        monthlyPension2: parseFloat(monthlyPension2Slider.value),
+        pensionAge2: mode === 'couple' ? parseInt(pensionAge2Slider.value, 10) : parseInt(currentAge1Slider.value, 10),
+        monthlyPension2: mode === 'couple' ? parseFloat(monthlyPension2Slider.value) : 0,
         currentAssets: parseFloat(currentAssetsSlider.value),
         annualReturn: parseFloat(portfolioReturnsSlider.value),
         annualSpending: parseFloat(annualSpendingSlider.value),
@@ -696,7 +775,27 @@ function getSimulationInputs() {
 }
 
 function getProjectionDuration(inputs) {
+    if ((inputs.householdMode || 'couple') === 'solo') {
+        return Math.max(0, inputs.endAge1 - inputs.currentAge1);
+    }
+
     return Math.max(inputs.endAge1 - inputs.currentAge1, inputs.endAge2 - inputs.currentAge2);
+}
+
+function getPortfolioPhaseLabelKeys(mode) {
+    if (mode === 'solo') {
+        return {
+            growth: 'workingSolo',
+            oneWorks: 'retiredSolo',
+            withdrawal: 'retiredSolo'
+        };
+    }
+
+    return {
+        growth: '2_work',
+        oneWorks: '1_works',
+        withdrawal: '0_work'
+    };
 }
 
 function getScenarioRate(rates, index, fallbackRate) {
@@ -799,6 +898,8 @@ function updateCashflowSummary(data, helpers = {}) {
 }
 
 function calculateScenarioPortfolioGrowth(inputs, scenario = {}) {
+    const householdMode = normalizeHouseholdMode(inputs.householdMode);
+    const isCouple = householdMode === 'couple';
     const duration = getProjectionDuration(inputs);
     const defaultAnnualReturnRate = inputs.annualReturn / 100;
     const defaultInflationRate = inputs.inflation / 100;
@@ -834,7 +935,7 @@ function calculateScenarioPortfolioGrowth(inputs, scenario = {}) {
 
     data.years.push(simulationStartYear);
     data.ages1.push(inputs.currentAge1);
-    data.ages2.push(inputs.currentAge2);
+    data.ages2.push(isCouple ? inputs.currentAge2 : undefined);
     data.values.push(portfolioValue);
     data.growthYears.push(simulationStartYear);
     data.growthValues.push(portfolioValue);
@@ -852,18 +953,17 @@ function calculateScenarioPortfolioGrowth(inputs, scenario = {}) {
         const contributionFactor = inflationFactors[Math.max(0, offset - 1)] || 1;
         const retirementFactor = inflationFactors[offset] || 1;
         const person1Working = age1 <= inputs.retirementAge1 && age1 <= inputs.endAge1;
-        const person2Working = age2 <= inputs.retirementAge2 && age2 <= inputs.endAge2;
-        const bothWorking = person1Working && person2Working;
-        const oneWorking = person1Working !== person2Working;
+        const person2Working = isCouple && age2 <= inputs.retirementAge2 && age2 <= inputs.endAge2;
+        const workerCount = Number(person1Working) + Number(person2Working);
 
         let annualContributionThisYear = 0;
         let totalAnnualPensionThisYear = 0;
         let currentAnnualSpending = 0;
 
-        if (bothWorking) {
+        if (workerCount === 2) {
             annualContributionThisYear = inputs.annualContribution * contributionFactor;
-        } else if (oneWorking) {
-            annualContributionThisYear = inputs.annualContribution2 * contributionFactor;
+        } else if (workerCount === 1) {
+            annualContributionThisYear = (isCouple ? inputs.annualContribution2 : inputs.annualContribution) * contributionFactor;
         } else {
             currentAnnualSpending = inputs.annualSpending * retirementFactor;
 
@@ -871,7 +971,7 @@ function calculateScenarioPortfolioGrowth(inputs, scenario = {}) {
                 totalAnnualPensionThisYear += inputs.monthlyPension * pension1Multiplier * retirementFactor * 12;
             }
 
-            if (age2 >= inputs.pensionAge2 && age2 <= inputs.endAge2) {
+            if (isCouple && age2 >= inputs.pensionAge2 && age2 <= inputs.endAge2) {
                 totalAnnualPensionThisYear += inputs.monthlyPension2 * pension2Multiplier * retirementFactor * 12;
             }
         }
@@ -885,7 +985,7 @@ function calculateScenarioPortfolioGrowth(inputs, scenario = {}) {
 
         data.years.push(year);
         data.ages1.push(age1 <= inputs.endAge1 ? age1 : undefined);
-        data.ages2.push(age2 <= inputs.endAge2 ? age2 : undefined);
+        data.ages2.push(isCouple && age2 <= inputs.endAge2 ? age2 : undefined);
         data.values.push(portfolioValue);
         data.cashflowContributions.push(annualContributionThisYear);
         data.cashflowPensions.push(totalAnnualPensionThisYear);
@@ -893,10 +993,10 @@ function calculateScenarioPortfolioGrowth(inputs, scenario = {}) {
         data.cashflowExtras.push(extraCostThisYear);
         data.cashflowNet.push(netCashflow);
 
-        if (bothWorking) {
+        if (workerCount === 2 || (!isCouple && workerCount === 1)) {
             data.growthYears.push(year);
             data.growthValues.push(portfolioValue);
-        } else if (oneWorking) {
+        } else if (workerCount === 1) {
             if (data.oneWorksYears.length === 0) {
                 data.oneWorksYears.push(year - 1);
                 data.oneWorksValues.push(data.values[data.values.length - 2]);
@@ -1221,9 +1321,11 @@ function updateChart() {
             }
         ];
     } else {
+        const phaseLabels = getPortfolioPhaseLabelKeys(inputs.householdMode);
+
         portfolioDatasets = [
             {
-                label: i18next.t('2_work'),
+                label: i18next.t(phaseLabels.growth),
                 data: growthData,
                 borderColor: '#667eea',
                 backgroundColor: 'rgba(102, 126, 234, 0.1)',
@@ -1236,9 +1338,12 @@ function updateChart() {
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2,
                 spanGaps: false
-            },
-            {
-                label: i18next.t('1_works'),
+            }
+        ];
+
+        if (inputs.householdMode === 'couple') {
+            portfolioDatasets.push({
+                label: i18next.t(phaseLabels.oneWorks),
                 data: oneWorksData,
                 borderColor: 'green',
                 backgroundColor: 'rgba(141, 182, 147, 0.1)',
@@ -1251,23 +1356,24 @@ function updateChart() {
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2,
                 spanGaps: false
-            },
-            {
-                label: i18next.t('0_work'),
-                data: withdrawalData,
-                borderColor: '#e74c3c',
-                backgroundColor: 'rgba(231, 76, 60, 0.1)',
-                borderWidth: 3,
-                fill: true,
-                tension: 0.4,
-                pointRadius: 4,
-                pointHoverRadius: 6,
-                pointBackgroundColor: '#e74c3c',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                spanGaps: false
-            }
-        ];
+            });
+        }
+
+        portfolioDatasets.push({
+            label: i18next.t(phaseLabels.withdrawal),
+            data: withdrawalData,
+            borderColor: '#e74c3c',
+            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#e74c3c',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            spanGaps: false
+        });
     }
 
     portfolioChart = new Chart(ctx, {
@@ -1828,6 +1934,7 @@ document.addEventListener("DOMContentLoaded", function() {
         analysisModeSelect.value = savedAnalysisMode;
     }
 
+    setHouseholdMode(localStorage.getItem(HOUSEHOLD_MODE_STORAGE_KEY), { refresh: false });
     setChartMobileView(activeChartView);
     extraCosts = loadExtraCostsFromStorage();
     renderExtraCosts();

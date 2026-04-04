@@ -15,6 +15,12 @@
 <body>
     <div class="container">
         <div class="app-toolbar">
+            <div class="household-switcher" role="group" aria-label="Household mode">
+                <div class="household-switcher-options">
+                    <button type="button" class="household-option" data-household-mode="solo" data-i18n="householdModeSolo"></button>
+                    <button type="button" class="household-option" data-household-mode="couple" data-i18n="householdModeCouple"></button>
+                </div>
+            </div>
             <div class="language-switcher" role="group" aria-label="Language switcher">
                 <button type="button" class="language-option" data-language-option="nl">NL</button>
                 <button type="button" class="language-option" data-language-option="en">EN</button>
@@ -22,7 +28,7 @@
                 <button type="button" class="language-option" data-language-option="de">DE</button>
             </div>
         </div>
-        <div class="main-content">            
+        <div class="main-content" id="mainContent">
             <div class="person1-panel">
                 <details open> 
                 <summary data-i18n="person1"></summary>
@@ -83,7 +89,7 @@
                     </div>
                 </div>
             </div>
-            <div class="person2-panel">
+            <div class="person2-panel" id="person2Panel">
                 <details open> 
                     <summary  data-i18n="person2"></summary>                
                 <div class="slider-group-sameline">
@@ -119,7 +125,7 @@
             <div class="settings-panel">
                 <div class="common-panel">
                     <details open> 
-                    <summary data-i18n="commonSettings"></summary>
+                    <summary id="commonSettingsSummary" data-i18n="commonSettings"></summary>
                         <div class="slider-group-sameline">
                             <label for="currentAssets" data-i18n="currentAssets"></label>
                             <span class="value" id="currentAssetsValue">10.000</span>
@@ -132,18 +138,18 @@
                             <input type="range" id="portfolioReturns" min="0" max="15" value="5" step="0.1">
                         </div>
                         <div class="slider-group-sameline">
-                            <label for="annualContribution" data-i18n="annualContribution2Work"></label>
+                            <label for="annualContribution" id="annualContributionLabel" data-i18n="annualContribution2Work"></label>
                             <span class="value" id="annualContributionValue">12.000</span><span data-i18n="everyYear"></span>
                             <input type="range" id="annualContribution" min="0" max="200000" value="12000" step="1000">
                         </div>
-                        <div class="slider-group-sameline">
+                        <div class="slider-group-sameline" id="annualContribution2Row">
                             <label for="annualContribution2" data-i18n="annualContribution1Work"></label>
                             <span class="value" id="annualContribution2Value">6.000</span><span data-i18n="everyYear"></span>
                             <input type="range" id="annualContribution2" min="-100000" max="100000" value="6000" step="1000">
                         </div>
                         
                         <div class="slider-group-sameline">
-                            <label for="annualSpending" data-i18n="annualContribution0Work"></label>
+                            <label for="annualSpending" id="annualSpendingLabel" data-i18n="annualContribution0Work"></label>
                             <span class="value" id="annualSpendingValue">40.000</span><span data-i18n="everyYear"></span>
                             <input type="range" id="annualSpending" min="0" max="200000" value="40000" step="1000">
                         </div>

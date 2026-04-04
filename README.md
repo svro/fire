@@ -1,15 +1,16 @@
 # Fire
 
-Static FIRE calculator for couples in Europe.
+Static FIRE calculator for solo users and couples in Europe.
 
-The app models long-term portfolio growth and drawdown for two people, with support for pensions, inflation, extra costs, multiple analysis modes, and four interface languages.
+The app models long-term portfolio growth and drawdown for one or two people, with support for pensions, inflation, extra costs, multiple analysis modes, and four interface languages.
 
 ## What It Does
 
-- Models two people with separate current age, retirement age, pension age, and end age.
-- Projects a shared portfolio through three phases: `2 work`, `1 works`, and `0 work`.
+- Supports both `solo` and `couple` household modes.
+- Models one or two people with separate current age, retirement age, pension age, and end age.
+- Projects a shared portfolio through the relevant work and retirement phases for the selected household mode.
 - Includes current assets, yearly contributions, yearly spending, investment return, and inflation.
-- Adds pension income for both people once pension age is reached.
+- Adds pension income once pension age is reached for the active household setup.
 - Supports recurring or one-time extra costs such as studies, mortgage, renovation, healthcare, travel, or custom entries.
 - Shows both a portfolio chart and a yearly cashflow chart.
 - Supports deterministic, Monte Carlo, and stress-test style analyses.
@@ -56,7 +57,8 @@ Because of that, opening `index.html` directly via `file://` is not a reliable w
 
 ## Usage Notes
 
-- `Shared settings` contains the portfolio assumptions used by both people.
+- `Shared settings` contains the portfolio assumptions used by the active household setup.
+- `Household` lets you switch between a solo projection and a couple projection.
 - `Extras` lets you add cost events that affect the projection in specific years.
 - `Show in today's purchasing power` adjusts values for inflation when displaying the charts.
 - `Monte Carlo` and the stress modes are useful for comparing downside scenarios, not for predicting exact outcomes.
