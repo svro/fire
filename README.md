@@ -2,6 +2,8 @@
 
 Static FIRE planner for solo users and couples in Europe.
 
+deployed at: https://myfireplanner.netlify.app/
+
 The app models long-term portfolio growth and drawdown for one or two people, with support for pensions, inflation, extra costs, multiple analysis modes, and four interface languages.
 
 ## What It Does
