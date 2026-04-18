@@ -257,6 +257,43 @@ function formatEuroAmount(num) {
     }).format(Number(num));
 }
 
+function getCurrentAssetsStep(value) {
+    const amount = Math.max(0, Number(value) || 0);
+
+    if (amount <= 500000) return 5000;
+    if (amount <= 1000000) return 10000;
+    return 50000;
+}
+
+function normalizeCurrentAssetsValue(value, options = {}) {
+    const min = Number.isFinite(options.min) ? options.min : 0;
+    const max = Number.isFinite(options.max) ? options.max : 3000000;
+    const direction = Number(options.direction) || 0;
+    const boundedValue = Math.min(max, Math.max(min, Number(value) || 0));
+    const step = getCurrentAssetsStep(boundedValue);
+    let normalizedValue;
+
+    if (direction > 0) {
+        normalizedValue = Math.ceil(boundedValue / step) * step;
+    } else if (direction < 0) {
+        normalizedValue = Math.floor(boundedValue / step) * step;
+    } else {
+        normalizedValue = Math.round(boundedValue / step) * step;
+    }
+
+    return Math.min(max, Math.max(min, normalizedValue));
+}
+
+function syncCurrentAssetsSlider(value, direction = 0) {
+    const min = Number(currentAssetsSlider.min) || 0;
+    const max = Number(currentAssetsSlider.max) || 3000000;
+    const normalizedValue = normalizeCurrentAssetsValue(value, { min, max, direction });
+
+    currentAssetsSlider.value = String(normalizedValue);
+    currentAssetsSlider.step = String(getCurrentAssetsStep(normalizedValue));
+    currentAssetsSlider.dataset.previousValue = String(normalizedValue);
+}
+
 function formatCompactEuroAmount(num) {
     const value = Number(num);
     const absoluteValue = Math.abs(value);
@@ -1782,6 +1819,11 @@ endAge2Slider.addEventListener('input', function() {
 });
 
 currentAssetsSlider.addEventListener('input', function() {
+    const previousValue = Number(this.dataset.previousValue || this.value);
+    const nextValue = Number(this.value);
+    const direction = Math.sign(nextValue - previousValue);
+
+    syncCurrentAssetsSlider(nextValue, direction);
     updateValueDisplays();
     updateChart();
 });
@@ -1929,6 +1971,8 @@ document.addEventListener("DOMContentLoaded", function() {
     // Selecteer alle sliders op de pagina
     const sliders = document.querySelectorAll('input[type="range"]');
 
+    syncCurrentAssetsSlider(currentAssetsSlider.value);
+
     sliders.forEach(slider => {
         // Controleer of de slider een ID heeft, dit is vereist voor het opslaan
         if (!slider.id) return; 
@@ -1938,7 +1982,11 @@ document.addEventListener("DOMContentLoaded", function() {
         
         if (opgeslagenWaarde !== null) {
             // Herstel de opgeslagen waarde
-            slider.value = opgeslagenWaarde;
+            if (slider.id === 'currentAssets') {
+                syncCurrentAssetsSlider(opgeslagenWaarde);
+            } else {
+                slider.value = opgeslagenWaarde;
+            }
             
             // Simuleer een input-event zodat je bestaande FIRE-berekening direct wordt geüpdatet
             slider.dispatchEvent(new Event('input'));

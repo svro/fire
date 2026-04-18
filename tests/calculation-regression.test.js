@@ -49,6 +49,8 @@ globalThis.__testExports = {
     runMonteCarloAnalysis,
     buildInflationFactors,
     getPercentile,
+    getCurrentAssetsStep,
+    normalizeCurrentAssetsValue,
     setExtraCosts(value) { extraCosts = value; },
     resetExtraCosts() { extraCosts = []; }
 };
@@ -514,4 +516,30 @@ test('solo mode does not add hidden partner pension income', () => {
     assert.deepEqual(plain(result.cashflowPensions), [0, 1200, 1200]);
     assert.deepEqual(plain(result.cashflowNet), [0, 0, 0]);
     assert.deepEqual(plain(result.values), [0, 0, 0]);
+});
+
+test('current assets slider step increases by configured asset range', () => {
+    const api = loadSimulationApi();
+
+    assert.equal(api.getCurrentAssetsStep(0), 5000);
+    assert.equal(api.getCurrentAssetsStep(100000), 5000);
+    assert.equal(api.getCurrentAssetsStep(100001), 5000);
+    assert.equal(api.getCurrentAssetsStep(500000), 5000);
+    assert.equal(api.getCurrentAssetsStep(500001), 10000);
+    assert.equal(api.getCurrentAssetsStep(1000000), 10000);
+    assert.equal(api.getCurrentAssetsStep(1000001), 50000);
+    assert.equal(api.getCurrentAssetsStep(3000000), 50000);
+});
+
+test('current assets values snap in the direction of travel when crossing a step boundary', () => {
+    const api = loadSimulationApi();
+
+    assert.equal(api.normalizeCurrentAssetsValue(101000, { direction: 1 }), 105000);
+    assert.equal(api.normalizeCurrentAssetsValue(499000, { direction: 1 }), 500000);
+    assert.equal(api.normalizeCurrentAssetsValue(505000, { direction: 1 }), 510000);
+    assert.equal(api.normalizeCurrentAssetsValue(495000, { direction: -1 }), 495000);
+    assert.equal(api.normalizeCurrentAssetsValue(1010000, { direction: 1 }), 1050000);
+    assert.equal(api.normalizeCurrentAssetsValue(3010000, { direction: 1 }), 3000000);
+    assert.equal(api.normalizeCurrentAssetsValue(3010000, { direction: -1 }), 3000000);
+    assert.equal(api.normalizeCurrentAssetsValue(4000000, { direction: 1 }), 3000000);
 });
