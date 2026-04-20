@@ -15,6 +15,7 @@
     "householdModeLabel": "Menage",
     "householdModeSolo": "Solo",
     "householdModeCouple": "Couple",
+    "currencyLabel": "Devise",
     "annualContribution2Work": "Contribution (2 actifs)",
     "annualContribution1Work": "Contribution (1 actif)",
     "annualContributionSolo": "Contribution",
@@ -98,6 +99,10 @@
     "0_work": "0 travail",
     "workingSolo": "Actif",
     "retiredSolo": "Retraite",
-    "yearShort": "a"
+    "yearShort": "a",
+    "privacyTitle": "Vie privee et cookies",
+    "privacyLine1": "Ce site enregistre un petit nombre de parametres localement dans votre navigateur via localStorage afin de retenir vos preferences sur votre appareil.",
+    "privacyLine2": "Nous ne stockons pas votre plan FIRE ni vos donnees saisies sur notre propre serveur et nous n'utilisons ni comptes, ni formulaires, ni cookies analytiques.",
+    "privacyLine3": "Votre navigateur charge toutefois les fichiers necessaires depuis ce site web afin d'afficher correctement la page."
   }
   

@@ -53,9 +53,9 @@ node --test --test-isolation=none
 The app loads:
 
 - translation files from `locales/*.json`
-- third-party libraries from public CDNs
+- local vendored frontend libraries in `vendor/`
 
-Because of that, opening `index.html` directly via `file://` is not a reliable way to run the app.
+Because locale files are fetched over HTTP, opening `index.html` directly via `file://` is not a reliable way to run the app.
 
 ## Usage Notes
 
@@ -78,7 +78,7 @@ Important deployment notes:
 
 - Keep the `locales/` directory next to `index.html`.
 - The app now uses relative locale loading, so it can be hosted from a subpath as well as from the site root.
-- The app depends on CDN-hosted libraries, so an internet connection is currently required unless those dependencies are vendored locally.
+- Keep the `vendor/` directory next to `index.html`, because it contains the locally hosted frontend libraries.
 
 ## Project Structure
 
@@ -120,7 +120,7 @@ There is no server-side storage.
 
 ### Dependencies
 
-Loaded directly in `index.html`:
+Loaded locally from `vendor/` and referenced by `index.html`:
 
 - [Chart.js](https://www.chartjs.org/)
 - [i18next](https://www.i18next.com/)
@@ -140,7 +140,7 @@ Common changes are straightforward:
 
 - This is a simplified planning tool, not financial advice.
 - The model uses high-level annual assumptions and does not model taxes, fees, asset allocation changes, or country-specific pension/tax rules.
-- Third-party libraries are loaded from CDNs instead of being pinned in a package-managed frontend build.
+- Frontend libraries are vendored locally rather than managed through a frontend build pipeline.
 
 ## Suggested Next Improvements
 

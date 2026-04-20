@@ -15,6 +15,7 @@
     "householdModeLabel": "Household",
     "householdModeSolo": "Solo",
     "householdModeCouple": "Couple",
+    "currencyLabel": "Currency",
     "annualContribution2Work": "Contribution (2 working)",
     "annualContribution1Work": "Contribution (1 working)",
     "annualContributionSolo": "Contribution",
@@ -98,5 +99,9 @@
     "0_work": "0 work",
     "workingSolo": "Working",
     "retiredSolo": "Retired",
-    "yearShort": "y"
+    "yearShort": "y",
+    "privacyTitle": "Privacy & cookies",
+    "privacyLine1": "This website stores a small number of settings locally in your browser using localStorage, so your preferences can be remembered on your device.",
+    "privacyLine2": "We do not store your FIRE plan or inputs on our own server, and we do not use accounts, forms, or analytics cookies.",
+    "privacyLine3": "Your browser still loads the necessary files from this website so the page can be displayed correctly."
   }

@@ -53,6 +53,30 @@ body {
     overflow: hidden;
 }
 
+.site-notice {
+    display: grid;
+    gap: 10px;
+    margin: 0 24px 24px;
+    padding: 18px 20px 22px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(236, 242, 238, 0.92));
+    box-shadow: var(--shadow-md);
+}
+
+.site-notice-title {
+    font-size: 0.98rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--accent-strong);
+}
+
+.site-notice-text {
+    font-size: 0.88rem;
+    line-height: 1.5;
+    color: var(--muted);
+}
+
 .app-toolbar {
     display: flex;
     justify-content: space-between;
@@ -60,6 +84,34 @@ body {
     gap: 16px;
     flex-wrap: wrap;
     padding: 18px 24px 0;
+}
+
+.toolbar-controls {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.toolbar-inline-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.chart-panel-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: -4px;
+}
+
+.toolbar-inline-label {
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
 }
 
 .household-switcher {
@@ -111,9 +163,9 @@ body {
     transform: translateY(1px);
 }
 
-.language-switcher {
+.language-switcher,
+.currency-switcher {
     display: inline-grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 6px;
     padding: 6px;
     background: rgba(255, 255, 255, 0.72);
@@ -123,7 +175,16 @@ body {
     backdrop-filter: blur(12px);
 }
 
-.language-option {
+.language-switcher {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.currency-switcher {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.language-option,
+.currency-option {
     min-width: 46px;
     padding: 8px 10px;
     border: 0;
@@ -138,20 +199,28 @@ body {
     transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 
+.currency-option {
+    min-width: 54px;
+}
+
 .language-option:hover,
-.language-option:focus-visible {
+.language-option:focus-visible,
+.currency-option:hover,
+.currency-option:focus-visible {
     background: rgba(29, 95, 82, 0.08);
     color: var(--accent-strong);
     outline: none;
 }
 
-.language-option.is-active {
+.language-option.is-active,
+.currency-option.is-active {
     background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
     color: #ffffff;
     box-shadow: 0 8px 18px rgba(29, 95, 82, 0.22);
 }
 
-.language-option:active {
+.language-option:active,
+.currency-option:active {
     transform: translateY(1px);
 }
 
@@ -215,6 +284,13 @@ body {
     .person1-panel > details,
     .person2-panel > details {
         min-height: 828px;
+    }
+}
+
+@media (max-width: 900px) {
+    .site-notice {
+        margin: 0 16px 16px;
+        padding: 16px 16px 18px;
     }
 }
 
@@ -782,6 +858,22 @@ table {
         padding: 14px 14px 0;
     }
 
+    .toolbar-controls {
+        gap: 6px;
+        align-items: end;
+    }
+
+    .toolbar-inline-group {
+        flex-direction: row;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .toolbar-inline-label {
+        font-size: 0.66rem;
+        letter-spacing: 0.06em;
+    }
+
     .household-switcher {
         display: block;
         width: 100%;
@@ -806,6 +898,19 @@ table {
         padding: 4px;
     }
 
+    .currency-switcher {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 3px;
+        padding: 4px;
+    }
+
+    .chart-panel-toolbar {
+        justify-content: flex-start;
+        margin-top: 0;
+        order: -2;
+    }
+
     .household-option {
         width: 100%;
         min-width: 0;
@@ -817,13 +922,20 @@ table {
         text-overflow: ellipsis;
     }
 
-    .language-option {
+    .language-option,
+    .currency-option {
         width: 30px;
         min-width: 30px;
         min-height: 34px;
         padding: 7px 0;
         font-size: 0.72rem;
         letter-spacing: 0.02em;
+    }
+
+    .currency-option {
+        width: 44px;
+        min-width: 44px;
+        padding: 7px 4px;
     }
 
     .app-toolbar > * {
@@ -862,6 +974,7 @@ table {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
+        order: -1;
     }
 
     .chart-panel[data-mobile-view="portfolio"] .chart-wrapper--cashflow,

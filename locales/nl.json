@@ -15,6 +15,7 @@
   "householdModeLabel": "Huishouden",
   "householdModeSolo": "Alleen",
   "householdModeCouple": "Samen",
+  "currencyLabel": "Munt",
   "annualContribution2Work": "Bijdrage 2 werken",
   "annualContribution1Work": "Bijdrage 1 werkt",
   "annualContributionSolo": "Bijdrage",
@@ -98,5 +99,9 @@
   "0_work": "0 werkt er",
   "workingSolo": "Werkt",
   "retiredSolo": "Gepensioneerd",
-  "yearShort": "j"
+  "yearShort": "j",
+  "privacyTitle": "Privacy & cookies",
+  "privacyLine1": "Deze website bewaart een beperkt aantal instellingen lokaal in je browser via localStorage, zodat je voorkeuren op je eigen toestel onthouden blijven.",
+  "privacyLine2": "We slaan je FIRE-plan of ingevoerde gegevens niet op onze eigen server op en we gebruiken geen accounts, formulieren of analytische cookies.",
+  "privacyLine3": "Je browser laadt wel de nodige bestanden van deze website om de pagina correct weer te geven."
 }

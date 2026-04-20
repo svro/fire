@@ -1,12 +1,13 @@
 // 1. Bepaal de standaardtaal op basis van localStorage of de browser
 const supportedLanguages = ['nl', 'en', 'fr', 'de'];
+const supportedCurrencies = ['EUR', 'USD', 'GBP', 'CHF'];
 const storedLanguage = localStorage.getItem('taal') || localStorage.getItem('i18nextLng');
 const browserLanguage = navigator.language.split('-')[0];
 const userLang = supportedLanguages.includes(storedLanguage)
     ? storedLanguage
     : supportedLanguages.includes(browserLanguage)
         ? browserLanguage
-        : 'nl';
+        : 'en';
 
 // 2. Initialiseer i18next
 i18next
@@ -46,10 +47,15 @@ function vertaalPagina() {
 }
 
 const languageButtons = document.querySelectorAll('[data-language-option]');
+const currencyButtons = document.querySelectorAll('[data-currency-option]');
 const householdModeButtons = document.querySelectorAll('[data-household-mode]');
 
 function normalizeHouseholdMode(value) {
     return value === 'solo' ? 'solo' : 'couple';
+}
+
+function normalizeCurrency(value) {
+    return supportedCurrencies.includes(value) ? value : 'EUR';
 }
 
 function updateLanguageSwitcher() {
@@ -57,6 +63,20 @@ function updateLanguageSwitcher() {
 
     languageButtons.forEach(button => {
         const isActive = button.dataset.languageOption === activeLanguage;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-pressed', String(isActive));
+    });
+}
+
+function getCurrency() {
+    return displayCurrency;
+}
+
+function updateCurrencySwitcher() {
+    const activeCurrency = getCurrency();
+
+    currencyButtons.forEach(button => {
+        const isActive = button.dataset.currencyOption === activeCurrency;
         button.classList.toggle('is-active', isActive);
         button.setAttribute('aria-pressed', String(isActive));
     });
@@ -116,11 +136,23 @@ function setHouseholdMode(nextMode, options = {}) {
     }
 }
 
+function setCurrency(nextCurrency, options = {}) {
+    displayCurrency = normalizeCurrency(nextCurrency);
+    localStorage.setItem(CURRENCY_STORAGE_KEY, displayCurrency);
+    updateCurrencySwitcher();
+
+    if (options.refresh !== false) {
+        updateValueDisplays();
+        updateChart();
+    }
+}
+
 // 3. Functie om alle teksten in de interface te updaten
 function updateUI() {
     applyHouseholdModeUI();
     vertaalPagina();
     updateLanguageSwitcher();
+    updateCurrencySwitcher();
     updateHouseholdModeSwitcher();
     renderExtraCosts();
     toggleAnalysisSettings();
@@ -144,6 +176,12 @@ function veranderTaal(nieuweTaal) {
 languageButtons.forEach(button => {
     button.addEventListener('click', () => {
         veranderTaal(button.dataset.languageOption);
+    });
+});
+
+currencyButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        setCurrency(button.dataset.currencyOption);
     });
 });
 
@@ -222,22 +260,17 @@ const SHOW_REAL_VALUES_STORAGE_KEY = 'showRealValues';
 const CHART_VIEW_STORAGE_KEY = 'activeChartView';
 const ANALYSIS_MODE_STORAGE_KEY = 'analysisMode';
 const HOUSEHOLD_MODE_STORAGE_KEY = 'householdMode';
+const CURRENCY_STORAGE_KEY = 'displayCurrency';
 const EXTRA_COST_YEAR_MIN = new Date().getFullYear();
 const EXTRA_COST_YEAR_MAX = EXTRA_COST_YEAR_MIN + 60;
 
 let extraCosts = []; // array van { id, preset, label, type, amount, startYear, endYear }
 let activeChartView = localStorage.getItem(CHART_VIEW_STORAGE_KEY) || 'portfolio';
 let householdMode = normalizeHouseholdMode(localStorage.getItem(HOUSEHOLD_MODE_STORAGE_KEY));
+let displayCurrency = normalizeCurrency(localStorage.getItem(CURRENCY_STORAGE_KEY));
 
-// Format number with spaces as thousand separators (European style)
 function formatNumber(num) {
-    if (num >= 1000000 || num <= -1000000) {
-        return '€ ' + (num / 1000000).toFixed(2) + 'M';
-    } else if (num >= 10000 || num <= -1000) {
-        return '€ ' + (num / 1000).toFixed(0) + 'K';
-    }
-    return '€ ' + (num / 1000).toFixed(1) + 'K';
-    //return '€ ' + Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    return formatCompactCurrencyAmount(num);
 }
 
 function getNumberLocale() {
@@ -249,10 +282,10 @@ function getNumberLocale() {
     return 'en-BE';
 }
 
-function formatEuroAmount(num) {
+function formatCurrencyAmount(num) {
     return new Intl.NumberFormat(getNumberLocale(), {
         style: 'currency',
-        currency: 'EUR',
+        currency: getCurrency(),
         maximumFractionDigits: 0
     }).format(Number(num));
 }
@@ -294,24 +327,21 @@ function syncCurrentAssetsSlider(value, direction = 0) {
     currentAssetsSlider.dataset.previousValue = String(normalizedValue);
 }
 
-function formatCompactEuroAmount(num) {
+function formatCompactCurrencyAmount(num) {
     const value = Number(num);
     const absoluteValue = Math.abs(value);
 
-    if (absoluteValue >= 1000000) {
-        return '\u20AC ' + new Intl.NumberFormat(getNumberLocale(), {
-            minimumFractionDigits: 1,
-            maximumFractionDigits: 1
-        }).format(value / 1000000) + 'M';
-    }
-
     if (absoluteValue >= 10000) {
-        return '\u20AC ' + new Intl.NumberFormat(getNumberLocale(), {
-            maximumFractionDigits: 0
-        }).format(value / 1000) + 'K';
+        return new Intl.NumberFormat(getNumberLocale(), {
+            style: 'currency',
+            currency: getCurrency(),
+            notation: 'compact',
+            compactDisplay: 'short',
+            maximumFractionDigits: absoluteValue >= 1000000 ? 1 : 0
+        }).format(value);
     }
 
-    return formatEuroAmount(value);
+    return formatCurrencyAmount(value);
 }
 
 function escapeHtml(value) {
@@ -928,7 +958,7 @@ function updateCashflowSummary(data, helpers = {}) {
         return;
     }
 
-    const formatAmountForYear = helpers.formatAmountForYear || ((value) => formatEuroAmount(value));
+    const formatAmountForYear = helpers.formatAmountForYear || ((value) => formatCurrencyAmount(value));
 
     const worstNetValue = Math.min(...data.cashflowNet);
     const worstNetIndex = data.cashflowNet.indexOf(worstNetValue);
@@ -1167,7 +1197,7 @@ function updatePortfolioSummary(mode, monteCarloAnalysis, stressDefinition, scen
         return;
     }
 
-    const formatAmountForYear = helpers.formatAmountForYear || ((value) => formatEuroAmount(value));
+    const formatAmountForYear = helpers.formatAmountForYear || ((value) => formatCurrencyAmount(value));
 
     if (mode === 'monte-carlo' && monteCarloAnalysis) {
         const finalYear = baseData && baseData.years.length ? baseData.years[baseData.years.length - 1] : new Date().getFullYear();
@@ -1252,7 +1282,7 @@ function updateChart() {
         const yearsPassed = year - startYear;
         return value / Math.pow(1 + inflationRate, yearsPassed);
     };
-    const formatAmountForYear = (value, year) => formatEuroAmount(applyInflationAdjustment(value, year));
+    const formatAmountForYear = (value, year) => formatCurrencyAmount(applyInflationAdjustment(value, year));
 
     const growthData = chartData.years.map(year => {
         const growthIdx = chartData.growthYears.indexOf(year);
@@ -1492,7 +1522,7 @@ function updateChart() {
                                 age2 !== undefined ? i18next.t('person2') + `: ${age2}` + i18next.t('yearShort') : ''
                             ].filter(Boolean).join(' | ');
 
-                            return `${context.dataset.label}: ${formatEuroAmount(context.parsed.y)}${ages ? ` (${ages})` : ''}`;
+                            return `${context.dataset.label}: ${formatCurrencyAmount(context.parsed.y)}${ages ? ` (${ages})` : ''}`;
                         }
                     }
                 }
@@ -1522,7 +1552,7 @@ function updateChart() {
                 y: {
                     title: {
                         display: isMobile ? false : true,
-                        text: i18next.t('portfolioValue') + ' (€)',
+                        text: i18next.t('portfolioValue') + ` (${getCurrency()})`,
                         font: {
                             size: 12,
                             weight: '600'
@@ -1535,7 +1565,7 @@ function updateChart() {
                     ticks: {
                         font: { size: isMobile ? 10 : 12 },
                         callback: function(value) {
-                            return formatCompactEuroAmount(value);
+                            return formatCompactCurrencyAmount(value);
                         }
                     }
                 }
@@ -1639,7 +1669,7 @@ function updateChart() {
                             return `${chartData.years[idx]}`;
                         },
                         label: function(context) {
-                            return `${context.dataset.label}: ${formatEuroAmount(context.parsed.y)}`;
+                            return `${context.dataset.label}: ${formatCurrencyAmount(context.parsed.y)}`;
                         },
                         footer: function(contexts) {
                             const idx = contexts[0].dataIndex;
@@ -1650,7 +1680,7 @@ function updateChart() {
                                 age1 !== undefined ? i18next.t('person1') + `: ${age1}` + i18next.t('yearShort') : '',
                                 age2 !== undefined ? i18next.t('person2') + `: ${age2}` + i18next.t('yearShort') : ''
                             ].filter(Boolean).join(' | ');
-                            const netText = `${i18next.t('cashflowNet')}: ${formatEuroAmount(netValue)}`;
+                            const netText = `${i18next.t('cashflowNet')}: ${formatCurrencyAmount(netValue)}`;
                             return [netText, agesText].filter(Boolean).join(' | ');
                         }
                     }
@@ -1683,7 +1713,7 @@ function updateChart() {
                     stacked: true,
                     title: {
                         display: isMobile ? false : true,
-                        text: i18next.t('cashflowAxisLabel') + ' (€)',
+                        text: i18next.t('cashflowAxisLabel') + ` (${getCurrency()})`,
                         font: {
                             size: 12,
                             weight: '600'
@@ -1696,7 +1726,7 @@ function updateChart() {
                     ticks: {
                         font: { size: isMobile ? 10 : 12 },
                         callback: function(value) {
-                            return formatCompactEuroAmount(value);
+                            return formatCompactCurrencyAmount(value);
                         }
                     }
                 }
@@ -1718,16 +1748,16 @@ function updateValueDisplays() {
     currentAge2Value.textContent = currentAge2Slider.value;
     retirementAge2Value.textContent = retirementAge2Slider.value;
     endAge2Value.textContent = endAge2Slider.value;
-    currentAssetsValue.textContent = formatEuroAmount(currentAssetsSlider.value);
+    currentAssetsValue.textContent = formatCurrencyAmount(currentAssetsSlider.value);
     portfolioReturnsValue.textContent = parseFloat(portfolioReturnsSlider.value).toFixed(1);
     inflationValue.textContent = parseFloat(inflationSlider.value).toFixed(1);
-    annualSpendingValue.textContent = formatEuroAmount(annualSpendingSlider.value);
-    annualContributionValue.textContent = formatEuroAmount(annualContributionSlider.value);
-    annualContribution2Value.textContent = formatEuroAmount(annualContribution2Slider.value);    
+    annualSpendingValue.textContent = formatCurrencyAmount(annualSpendingSlider.value);
+    annualContributionValue.textContent = formatCurrencyAmount(annualContributionSlider.value);
+    annualContribution2Value.textContent = formatCurrencyAmount(annualContribution2Slider.value);    
     pensionAgeValue.textContent = pensionAgeSlider.value;
-    monthlyPensionValue.textContent = formatEuroAmount(monthlyPensionSlider.value);
+    monthlyPensionValue.textContent = formatCurrencyAmount(monthlyPensionSlider.value);
     pensionAge2Value.textContent = pensionAge2Slider.value;
-    monthlyPension2Value.textContent = formatEuroAmount(monthlyPension2Slider.value);
+    monthlyPension2Value.textContent = formatCurrencyAmount(monthlyPension2Slider.value);
     if (simulationCountValue && simulationCountSlider) {
         simulationCountValue.textContent = simulationCountSlider.value;
     }
@@ -2008,6 +2038,7 @@ document.addEventListener("DOMContentLoaded", function() {
         analysisModeSelect.value = savedAnalysisMode;
     }
 
+    setCurrency(localStorage.getItem(CURRENCY_STORAGE_KEY), { refresh: false });
     setHouseholdMode(localStorage.getItem(HOUSEHOLD_MODE_STORAGE_KEY), { refresh: false });
     setChartMobileView(activeChartView);
     extraCosts = loadExtraCostsFromStorage();

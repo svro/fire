@@ -15,6 +15,7 @@
     "householdModeLabel": "Haushalt",
     "householdModeSolo": "Solo",
     "householdModeCouple": "Paar",
+    "currencyLabel": "Waehrung",
     "annualContribution2Work": "Beitrag (2 arbeiten)",
     "annualContribution1Work": "Beitrag (1 arbeitet)",
     "annualContributionSolo": "Beitrag",
@@ -98,6 +99,10 @@
     "0_work": "0 arbeiten",
     "workingSolo": "Arbeitet",
     "retiredSolo": "Ruhestand",
-    "yearShort": "J"
+    "yearShort": "J",
+    "privacyTitle": "Datenschutz und Cookies",
+    "privacyLine1": "Diese Website speichert eine kleine Anzahl von Einstellungen lokal in Ihrem Browser per localStorage, damit Ihre Praferenzen auf Ihrem Geraet gespeichert bleiben.",
+    "privacyLine2": "Wir speichern Ihren FIRE-Plan oder Ihre Eingaben nicht auf unserem eigenen Server und verwenden keine Konten, Formulare oder Analyse-Cookies.",
+    "privacyLine3": "Ihr Browser laedt weiterhin die notwendigen Dateien von dieser Website, damit die Seite korrekt angezeigt werden kann."
   }
   

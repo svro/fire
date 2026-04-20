@@ -7,11 +7,11 @@
     <meta name="theme-color" content="#16332d">
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/i18next/dist/umd/i18next.min.js"></script>
-    <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script>
-    <script src="https://unpkg.com/i18next-browser-languagedetector/i18nextBrowserLanguageDetector.min.js"></script>
-    </head>
+    <script src="vendor/chart.umd.js"></script>
+    <script src="vendor/i18next.min.js"></script>
+    <script src="vendor/i18nextHttpBackend.min.js"></script>
+    <script src="vendor/i18nextBrowserLanguageDetector.min.js"></script>
+</head>
 <body>
     <div class="container">
         <div class="app-toolbar">
@@ -21,11 +21,13 @@
                     <button type="button" class="household-option" data-household-mode="couple" data-i18n="householdModeCouple"></button>
                 </div>
             </div>
-            <div class="language-switcher" role="group" aria-label="Language switcher">
-                <button type="button" class="language-option" data-language-option="nl">NL</button>
-                <button type="button" class="language-option" data-language-option="en">EN</button>
-                <button type="button" class="language-option" data-language-option="fr">FR</button>
-                <button type="button" class="language-option" data-language-option="de">DE</button>
+            <div class="toolbar-controls">
+                <div class="language-switcher" role="group" aria-label="Language switcher">
+                    <button type="button" class="language-option" data-language-option="nl">NL</button>
+                    <button type="button" class="language-option" data-language-option="en">EN</button>
+                    <button type="button" class="language-option" data-language-option="fr">FR</button>
+                    <button type="button" class="language-option" data-language-option="de">DE</button>
+                </div>
             </div>
         </div>
         <div class="main-content" id="mainContent">
@@ -65,6 +67,17 @@
                 <div class="chart-view-switcher" role="tablist" aria-label="Chart views">
                     <button type="button" class="chart-view-button is-active" data-chart-view="portfolio" data-i18n="chartTabPortfolio"></button>
                     <button type="button" class="chart-view-button" data-chart-view="cashflow" data-i18n="chartTabCashflow"></button>
+                </div>
+                <div class="chart-panel-toolbar">
+                    <div class="toolbar-inline-group">
+                        <span class="toolbar-inline-label" data-i18n="currencyLabel"></span>
+                        <div class="currency-switcher" role="group" aria-label="Currency switcher">
+                            <button type="button" class="currency-option" data-currency-option="EUR">EUR</button>
+                            <button type="button" class="currency-option" data-currency-option="USD">USD</button>
+                            <button type="button" class="currency-option" data-currency-option="GBP">GBP</button>
+                            <button type="button" class="currency-option" data-currency-option="CHF">CHF</button>
+                        </div>
+                    </div>
                 </div>
                 <div class="chart-wrapper chart-wrapper--portfolio">
                     <div class="chart-card-header">
@@ -216,6 +229,12 @@
                 </div>
             </div>
         </div>
+        <footer class="site-notice" aria-label="Privacy notice">
+            <h2 class="site-notice-title" data-i18n="privacyTitle"></h2>
+            <p class="site-notice-text" data-i18n="privacyLine1"></p>
+            <p class="site-notice-text" data-i18n="privacyLine2"></p>
+            <p class="site-notice-text" data-i18n="privacyLine3"></p>
+        </footer>
     </div>
     <script src="script.js"></script>
 </body>
