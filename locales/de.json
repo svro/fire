@@ -1,5 +1,7 @@
 {
     "titel": "FIRE Planner",
+    "contributionHelp": "Beitrag = Gehalt nach den regulären Ausgaben, ohne Renten und Zusatzkosten. Renten werden separat addiert, Zusatzkosten separat abgezogen. Nettorenten in heutiger Kaufkraft eingeben.",
+    "analysisSummaryShortfall": "Ungedeckter Fehlbetrag ab {{year}}, auch wenn sich das Vermögen später erholt.",
     "person1": "Du",
     "currentAge1": "Alter",
     "retirementAge1": "Eintrittsalter",

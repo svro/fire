@@ -39,7 +39,7 @@ function createMockElement(overrides = {}) {
     };
 }
 
-function loadSimulationApi() {
+function loadSimulationApi(storedValues = {}) {
     const scriptPath = path.join(__dirname, '..', 'script.js');
     const source = fs.readFileSync(scriptPath, 'utf8') + `
 globalThis.__testExports = {
@@ -51,6 +51,14 @@ globalThis.__testExports = {
     getPercentile,
     getCurrentAssetsStep,
     normalizeCurrentAssetsValue,
+    normalizeExtraCost,
+    applyExtraCostFieldUpdate,
+    loadExtraCostsFromStorage,
+    renderExtraCosts,
+    updateChart,
+    formatCurrencyAmount,
+    setHouseholdMode,
+    setScenarioFactory(factory) { buildRandomScenario = factory; },
     setExtraCosts(value) { extraCosts = value; },
     resetExtraCosts() { extraCosts = []; }
 };
@@ -89,6 +97,8 @@ globalThis.__testExports = {
         addEventListener() {}
     };
 
+    const translations = [];
+    const charts = [];
     const i18next = {
         resolvedLanguage: 'en',
         language: 'en',
@@ -107,7 +117,8 @@ globalThis.__testExports = {
             this.resolvedLanguage = language;
             return Promise.resolve();
         },
-        t(key) {
+        t(key, params) {
+            translations.push({ key, params });
             return key;
         }
     };
@@ -127,8 +138,8 @@ globalThis.__testExports = {
         Object,
         navigator: { language: 'en-US' },
         localStorage: {
-            getItem() {
-                return null;
+            getItem(key) {
+                return storedValues[key] ?? null;
             },
             setItem() {},
             removeItem() {}
@@ -145,7 +156,8 @@ globalThis.__testExports = {
                 this.type = type;
             }
         },
-        Chart: function Chart() {
+        Chart: function Chart(context, config) {
+            charts.push(config);
             return {
                 destroy() {}
             };
@@ -158,6 +170,9 @@ globalThis.__testExports = {
     sandbox.globalThis = sandbox;
 
     vm.runInNewContext(source, sandbox, { filename: scriptPath });
+    sandbox.__testExports.getElement = getElement;
+    sandbox.__testExports.charts = charts;
+    sandbox.__testExports.translations = translations;
     return sandbox.__testExports;
 }
 
@@ -542,4 +557,183 @@ test('current assets values snap in the direction of travel when crossing a step
     assert.equal(api.normalizeCurrentAssetsValue(3010000, { direction: 1 }), 3000000);
     assert.equal(api.normalizeCurrentAssetsValue(3010000, { direction: -1 }), 3000000);
     assert.equal(api.normalizeCurrentAssetsValue(4000000, { direction: 1 }), 3000000);
+});
+
+function retiredInputs(overrides = {}) {
+    return {
+        ...createBaseInputs(),
+        householdMode: 'solo',
+        currentAge1: 60,
+        retirementAge1: 60,
+        endAge1: 65,
+        pensionAge: 63,
+        monthlyPension: 2000,
+        currentAssets: 10000,
+        annualSpending: 20000,
+        annualContribution: 0,
+        ...overrides
+    };
+}
+
+function configureChart(api, inputs, mode, showRealValues) {
+    api.setHouseholdMode(inputs.householdMode, { refresh: false });
+    for (const [key, value] of Object.entries(inputs)) {
+        if (key !== 'householdMode') {
+            api.getElement(key === 'annualReturn' ? 'portfolioReturns' : key).value = String(value);
+        }
+    }
+    api.getElement('analysisMode').value = mode;
+    api.getElement('showRealValues').checked = showRealValues;
+    api.getElement('simulationCount').value = '2';
+    api.getElement('returnVolatility').value = '0';
+    api.getElement('inflationVolatility').value = '0';
+    api.updateChart();
+}
+
+test('later pension surpluses cannot turn an earlier funding failure into Monte Carlo success', () => {
+    const api = loadSimulationApi();
+    const inputs = retiredInputs();
+    const result = api.calculateScenarioPortfolioGrowth(inputs);
+    assert.deepEqual(plain(result.values), [10000, 0, 0, 4000, 8000, 12000]);
+    assert.deepEqual(plain(result.cashflowShortfall), [0, 10000, 20000, 0, 0, 0]);
+    assert.equal(result.hasShortfall, true);
+    assert.equal(result.firstShortfallYear, new Date().getFullYear() + 1);
+    assert.equal(api.runMonteCarloAnalysis(inputs, 5, 0, 0).successRate, 0);
+});
+
+test('pension-funded spending succeeds with zero assets throughout', () => {
+    const api = loadSimulationApi();
+    const inputs = retiredInputs({ currentAssets: 0, pensionAge: 60, annualSpending: 24000 });
+    const result = api.calculateScenarioPortfolioGrowth(inputs);
+    assert.deepEqual(plain(result.values), [0, 0, 0, 0, 0, 0]);
+    assert.equal(result.hasShortfall, false);
+    assert.equal(result.firstShortfallYear, null);
+    assert.equal(api.runMonteCarloAnalysis(inputs, 5, 0, 0).successRate, 1);
+});
+
+test('spending the last euro at the horizon succeeds but an unfunded cent fails', () => {
+    const api = loadSimulationApi();
+    const inputs = retiredInputs({ endAge1: 61, currentAssets: 100, annualSpending: 100 });
+    assert.equal(api.runMonteCarloAnalysis(inputs, 2, 0, 0).successRate, 1);
+    assert.equal(api.runMonteCarloAnalysis({ ...inputs, currentAssets: 99.99 }, 2, 0, 0).successRate, 0);
+});
+
+test('an unaffordable current-year extra cost fails even when later income rebuilds assets', () => {
+    const api = loadSimulationApi();
+    const year = new Date().getFullYear();
+    api.setExtraCosts([{ amount: 10001, startYear: year, endYear: year, type: 'one-time' }]);
+    const inputs = retiredInputs({ pensionAge: 60, annualSpending: 0 });
+    const result = api.calculateScenarioPortfolioGrowth(inputs);
+    assert.equal(result.cashflowShortfall[0], 1);
+    assert.equal(result.firstShortfallYear, year);
+    assert.ok(result.values.at(-1) > 0);
+    assert.equal(api.runMonteCarloAnalysis(inputs, 2, 0, 0).successRate, 0);
+});
+
+test('either retired partner receives their pension while the other still works', () => {
+    const api = loadSimulationApi();
+    const inputs = {
+        ...createBaseInputs(), currentAge1: 65, retirementAge1: 65, endAge1: 70,
+        currentAge2: 60, retirementAge2: 63, endAge2: 65,
+        pensionAge: 65, monthlyPension: 1000, annualContribution2: -5000
+    };
+    const result = api.calculateScenarioPortfolioGrowth(inputs);
+    assert.deepEqual(plain(result.cashflowPensions), [0, 12000, 12000, 12000, 12000, 12000]);
+    assert.equal(result.cashflowNet[1], 7000);
+    const swapped = api.calculateScenarioPortfolioGrowth({
+        ...inputs, currentAge1: 60, retirementAge1: 63, endAge1: 65,
+        currentAge2: 65, retirementAge2: 65, endAge2: 70,
+        pensionAge: 80, monthlyPension: 0, pensionAge2: 65, monthlyPension2: 1000
+    });
+    assert.deepEqual(plain(swapped.cashflowPensions), plain(result.cashflowPensions));
+    const stress = api.calculateScenarioPortfolioGrowth(inputs, api.getStressScenarioDefinition('stress-pension', inputs).scenario);
+    assert.equal(stress.cashflowPensions[1], 9600);
+});
+
+test('pension requires the person to stop work and ends after their own end age', () => {
+    const api = loadSimulationApi();
+    const result = api.calculateScenarioPortfolioGrowth({
+        ...createBaseInputs(), currentAge1: 65, retirementAge1: 66, endAge1: 68,
+        currentAge2: 60, retirementAge2: 60, endAge2: 65,
+        pensionAge: 65, monthlyPension: 1000
+    });
+    assert.deepEqual(plain(result.cashflowPensions), [0, 0, 12000, 12000, 0, 0]);
+});
+
+test('stored expired costs stay in the past after loading, rendering and amount edits', () => {
+    const year = new Date().getFullYear();
+    const api = loadSimulationApi({ fireExtraCosts: JSON.stringify([
+        { id: 'car', type: 'one-time', amount: 25000, startYear: year - 1, endYear: year - 1 },
+        { id: 'studies', type: 'yearly', amount: 10000, startYear: year - 3, endYear: year - 1 }
+    ]) });
+    const costs = api.loadExtraCostsFromStorage();
+    assert.equal(costs[0].startYear, year - 1);
+    assert.equal(costs[1].endYear, year - 1);
+    api.applyExtraCostFieldUpdate(costs[0], 'amount', '30000');
+    assert.equal(costs[0].startYear, year - 1);
+    api.setExtraCosts(costs);
+    api.renderExtraCosts();
+    assert.ok(api.getElement('extraCostsList').innerHTML.includes(`value="${year - 1}" selected`));
+    assert.deepEqual(plain(api.calculateScenarioPortfolioGrowth(createBaseInputs()).cashflowExtras), [0, 0, 0, 0, 0]);
+});
+
+test('an ongoing historical recurring cost is charged only for its remaining years', () => {
+    const api = loadSimulationApi();
+    const year = new Date().getFullYear();
+    api.setExtraCosts([api.normalizeExtraCost({ type: 'yearly', amount: 10, startYear: year - 2, endYear: year + 1 })]);
+    assert.deepEqual(plain(api.calculateScenarioPortfolioGrowth(createBaseInputs()).cashflowExtras), [10, 10, 0, 0, 0]);
+});
+
+test('Monte Carlo ranks purchasing power per path before computing percentiles', () => {
+    const api = loadSimulationApi();
+    let sample = 0;
+    api.setScenarioFactory(() => sample++ % 2 === 0
+        ? { annualReturnRates: [0], annualInflationRates: [0] }
+        : { annualReturnRates: [0.1], annualInflationRates: [0.2] });
+    const inputs = retiredInputs({ endAge1: 61, currentAssets: 100, annualSpending: 0, monthlyPension: 0 });
+    const nominal = api.runMonteCarloAnalysis(inputs, 2, 0, 0);
+    const real = api.runMonteCarloAnalysis(inputs, 2, 0, 0, true);
+    assertAlmostEqual(nominal.finalP50, 105);
+    assertAlmostEqual(real.finalP50, (100 + 110 / 1.2) / 2);
+    assertAlmostEqual(real.finalP10, (110 / 1.2) * 0.9 + 100 * 0.1);
+    assertAlmostEqual(real.finalP90, (110 / 1.2) * 0.1 + 100 * 0.9);
+    assert.equal(real.successRate, nominal.successRate);
+});
+
+test('stress charts and summary use each scenarios own inflation path', () => {
+    const api = loadSimulationApi();
+    const inputs = retiredInputs({ currentAssets: 100000, monthlyPension: 0, annualSpending: 10000, inflation: 2 });
+    configureChart(api, inputs, 'stress-inflation', true);
+    const portfolio = api.charts.at(-2).data.datasets;
+    const cashflow = api.charts.at(-1).data.datasets;
+    const stressFactors = [1, 1.05, 1.113, 1.19091, 1.2623646, 1.32548283];
+    const stressNominal = [100000, 89500, 78370, 66460.9, 53837.254, 40582.4257];
+    assertArrayAlmostEqual(portfolio[0].data, stressNominal.map((v, i) => v / stressFactors[i]));
+    const base = api.calculateScenarioPortfolioGrowth(inputs);
+    assertArrayAlmostEqual(portfolio[1].data, base.values.map((v, i) => v / 1.02 ** i));
+    assertArrayAlmostEqual(cashflow.find(d => d.label === 'cashflowSpending').data, [0, -10000, -10000, -10000, -10000, -10000]);
+    const summary = api.translations.findLast(t => t.key === 'stressSummaryInflation').params;
+    assert.equal(summary.ending, api.formatCurrencyAmount(40582.4257 / 1.32548283));
+    assert.equal(summary.delta, api.formatCurrencyAmount(40582.4257 / 1.32548283 - base.values.at(-1) / 1.02 ** 5));
+    configureChart(api, inputs, 'stress-inflation', false);
+    assertArrayAlmostEqual(api.charts.at(-2).data.datasets[0].data, stressNominal);
+});
+
+test('Monte Carlo charts and summaries do not deflate real percentiles a second time', () => {
+    const api = loadSimulationApi();
+    const inputs = retiredInputs({ currentAssets: 100000, annualSpending: 0, monthlyPension: 0, inflation: 2 });
+    configureChart(api, inputs, 'monte-carlo', true);
+    const median = api.charts.at(-2).data.datasets.find(d => d.label === 'portfolioMonteCarloMedian');
+    assertArrayAlmostEqual(median.data, [0, 1, 2, 3, 4, 5].map(i => 100000 / 1.02 ** i));
+    const summary = api.translations.findLast(t => t.key === 'analysisSummaryMedian').params;
+    assert.equal(summary.amount, api.formatCurrencyAmount(100000 / 1.02 ** 5));
+});
+
+test('deterministic and stress summaries disclose earlier shortfalls after recovery', () => {
+    const api = loadSimulationApi();
+    for (const mode of ['deterministic', 'stress-pension']) {
+        configureChart(api, retiredInputs(), mode, false);
+        assert.ok(api.getElement('portfolioChartSummary').textContent.includes('analysisSummaryShortfall'));
+        assert.equal(api.translations.findLast(t => t.key === 'analysisSummaryShortfall').params.year, new Date().getFullYear() + 1);
+    }
 });

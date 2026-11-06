@@ -65,6 +65,17 @@ Because locale files are fetched over HTTP, opening `index.html` directly via `f
 - `Show in today's purchasing power` adjusts values for inflation when displaying the charts.
 - `Monte Carlo` and the stress modes are useful for comparing downside scenarios, not for predicting exact outcomes.
 
+### Calculation conventions
+
+- Contributions are the household's net salary surplus after ordinary living expenses. They exclude pensions and the separately configured extra costs; a negative contribution represents a deficit while one person works. Do not include pension income in this input: the app adds each person's pension separately after that person stops working and reaches pension age, even if their partner still works.
+- Enter pensions as net monthly amounts in today's purchasing power. Pensions, retirement spending and extra costs are indexed using the simulated cumulative inflation. The contribution input is the amount for the first projected year and is indexed from the following year onward.
+- The starting point represents current assets after any extra costs scheduled for the current calendar year. Subsequent rows apply a full year's investment return to the previous balance, followed by the annual cashflow. The app does not model monthly cashflow timing.
+- Ages are annual labels: the row at the stop age includes the last working-year contribution; retirement spending starts in the next row. Pension eligibility uses the row's age and requires the person to have stopped working. Birthdays and partial pension years are not modelled.
+- A plan succeeds only if every modelled cashflow can be funded. A zero balance is allowed when there is no unmet spending. An unfunded shortfall of more than half a currency cent permanently marks a simulation as unsuccessful, even if later income rebuilds the portfolio. Balances are floored at zero for display; unpaid expenses are recorded as shortfalls, not carried as debt. Base and stress summaries flag the first shortfall year.
+- Real-value stress charts use the stress scenario's own cumulative inflation, while the base comparison uses base inflation. Monte Carlo converts each individual simulation to purchasing power before calculating percentiles. Summary amounts use the same units as the charts.
+- Saved historical extra costs retain their dates. Expired costs are excluded; ongoing recurring costs apply only to remaining years, including the current year if applicable.
+- Household spending stays unchanged after one person's end age. Pensions stop after that person's end age. The model assumes full pension indexation and does not model survivor pensions.
+
 ## Deployment
 
 The app can be hosted on any static host that serves plain HTML, CSS, JS, and JSON files, for example:

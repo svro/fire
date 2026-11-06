@@ -1,5 +1,7 @@
 {
     "titel": "FIRE Planner",
+    "contributionHelp": "Contribution = salary left after regular expenses, excluding pensions and extra costs. Pensions are added separately; extra costs are deducted separately. Enter net pensions in today's purchasing power.",
+    "analysisSummaryShortfall": "Unfunded shortfall from {{year}}, even if the portfolio later recovers.",
     "person1": "You",
     "currentAge1": "Age",
     "retirementAge1": "Retirement age",

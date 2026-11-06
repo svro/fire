@@ -1,5 +1,7 @@
 {
   "titel": "FIRE Planner",
+  "contributionHelp": "Bijdrage = wat uit het loon overblijft na de gewone uitgaven, zonder pensioen en extra kosten. Pensioenen worden apart bijgeteld; extra kosten apart afgetrokken. Voer netto pensioenen in, in koopkracht van vandaag.",
+  "analysisSummaryShortfall": "Ongedekt geldtekort vanaf {{year}}, ook als het vermogen later herstelt.",
   "person1": "Jij",
   "currentAge1": "Leeftijd",
   "retirementAge1": "Stopleeftijd",

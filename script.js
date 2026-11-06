@@ -401,7 +401,8 @@ function createExtraCost(preset = 'other') {
 }
 
 function normalizeExtraCost(cost, index = 0) {
-    const startYear = Math.min(EXTRA_COST_YEAR_MAX, Math.max(EXTRA_COST_YEAR_MIN, parseInt(cost.startYear, 10) || EXTRA_COST_YEAR_MIN));
+    // Keep historical dates: loading an expired cost must never schedule it again.
+    const startYear = Math.min(EXTRA_COST_YEAR_MAX, Math.max(1, parseInt(cost.startYear, 10) || EXTRA_COST_YEAR_MIN));
     let endYear = Math.min(EXTRA_COST_YEAR_MAX, Math.max(startYear, parseInt(cost.endYear, 10) || startYear));
     const type = cost.type === 'yearly' ? 'yearly' : 'one-time';
 
@@ -492,12 +493,13 @@ function renderExtraCosts() {
         const displayLabel = escapeHtml(cost.label || getDefaultExtraCostLabel(cost.preset));
         const summary = escapeHtml(getExtraCostSummary(cost));
         const isYearly = cost.type === 'yearly';
-        const yearOptions = Array.from({ length: EXTRA_COST_YEAR_MAX - EXTRA_COST_YEAR_MIN + 1 }, (_, offset) => {
-            const year = EXTRA_COST_YEAR_MIN + offset;
+        const firstOptionYear = Math.min(EXTRA_COST_YEAR_MIN, cost.startYear);
+        const yearOptions = Array.from({ length: EXTRA_COST_YEAR_MAX - firstOptionYear + 1 }, (_, offset) => {
+            const year = firstOptionYear + offset;
             return `<option value="${year}" ${year === cost.startYear ? 'selected' : ''}>${year}</option>`;
         }).join('');
-        const endYearOptions = Array.from({ length: EXTRA_COST_YEAR_MAX - EXTRA_COST_YEAR_MIN + 1 }, (_, offset) => {
-            const year = EXTRA_COST_YEAR_MIN + offset;
+        const endYearOptions = Array.from({ length: EXTRA_COST_YEAR_MAX - firstOptionYear + 1 }, (_, offset) => {
+            const year = firstOptionYear + offset;
             return `<option value="${year}" ${year === cost.endYear ? 'selected' : ''}>${year}</option>`;
         }).join('');
         const getActionAttributes = (action, field = '', value = '') => {
@@ -626,7 +628,7 @@ function applyExtraCostFieldUpdate(cost, field, rawValue) {
         cost[field] = String(rawValue).trimStart();
     }
 
-    if (cost.startYear < EXTRA_COST_YEAR_MIN) cost.startYear = EXTRA_COST_YEAR_MIN;
+    if (cost.startYear < 1) cost.startYear = 1;
     if (cost.startYear > EXTRA_COST_YEAR_MAX) cost.startYear = EXTRA_COST_YEAR_MAX;
 
     if (cost.type === 'one-time') {
@@ -1018,12 +1020,20 @@ function calculateScenarioPortfolioGrowth(inputs, scenario = {}) {
         cashflowPensions: [],
         cashflowSpending: [],
         cashflowExtras: [],
-        cashflowNet: []
+        cashflowNet: [],
+        inflationFactors,
+        cashflowShortfall: [],
+        firstShortfallYear: null,
+        hasShortfall: false
     };
 
     let portfolioValue = inputs.currentAssets;
     const currentYearExtraCosts = getExtraCostAmountForOffset(0, simulationStartYear, inflationFactors);
 
+    const initialShortfall = Math.max(0, currentYearExtraCosts - portfolioValue);
+    data.hasShortfall = initialShortfall > 0.005;
+    data.firstShortfallYear = data.hasShortfall ? simulationStartYear : null;
+    data.cashflowShortfall.push(initialShortfall);
     portfolioValue = Math.max(0, portfolioValue - currentYearExtraCosts);
 
     data.years.push(simulationStartYear);
@@ -1059,14 +1069,16 @@ function calculateScenarioPortfolioGrowth(inputs, scenario = {}) {
             annualContributionThisYear = (isCouple ? inputs.annualContribution2 : inputs.annualContribution) * contributionFactor;
         } else {
             currentAnnualSpending = inputs.annualSpending * retirementFactor;
+        }
 
-            if (age1 >= inputs.pensionAge && age1 <= inputs.endAge1) {
-                totalAnnualPensionThisYear += inputs.monthlyPension * pension1Multiplier * retirementFactor * 12;
-            }
+        // Contributions are household savings from work, excluding pension income.
+        // Each retired person's pension is independent of the partner's work status.
+        if (!person1Working && age1 >= inputs.pensionAge && age1 <= inputs.endAge1) {
+            totalAnnualPensionThisYear += inputs.monthlyPension * pension1Multiplier * retirementFactor * 12;
+        }
 
-            if (isCouple && age2 >= inputs.pensionAge2 && age2 <= inputs.endAge2) {
-                totalAnnualPensionThisYear += inputs.monthlyPension2 * pension2Multiplier * retirementFactor * 12;
-            }
+        if (isCouple && !person2Working && age2 >= inputs.pensionAge2 && age2 <= inputs.endAge2) {
+            totalAnnualPensionThisYear += inputs.monthlyPension2 * pension2Multiplier * retirementFactor * 12;
         }
 
         const scenarioShockThisYear = extraCostShocks[offset] || 0;
@@ -1074,6 +1086,13 @@ function calculateScenarioPortfolioGrowth(inputs, scenario = {}) {
         const netCashflow = annualContributionThisYear + totalAnnualPensionThisYear - currentAnnualSpending - extraCostThisYear;
 
         portfolioValue = portfolioValue * (1 + annualReturnRate) + netCashflow;
+        const shortfall = Math.max(0, -portfolioValue);
+        data.cashflowShortfall.push(shortfall);
+        // Ignore sub-cent floating-point noise, but remember any funding failure.
+        if (shortfall > 0.005) {
+            data.hasShortfall = true;
+            data.firstShortfallYear ??= year;
+        }
         portfolioValue = Math.max(0, portfolioValue);
 
         data.years.push(year);
@@ -1157,7 +1176,7 @@ function buildRandomScenario(duration, annualReturn, inflation, returnVolatility
     };
 }
 
-function runMonteCarloAnalysis(inputs, simulationCount, returnVolatility, inflationVolatility) {
+function runMonteCarloAnalysis(inputs, simulationCount, returnVolatility, inflationVolatility, showRealValues = false) {
     const duration = getProjectionDuration(inputs);
     const yearlyValues = Array.from({ length: duration + 1 }, () => []);
     let successCount = 0;
@@ -1165,14 +1184,14 @@ function runMonteCarloAnalysis(inputs, simulationCount, returnVolatility, inflat
     for (let simulation = 0; simulation < simulationCount; simulation++) {
         const scenario = buildRandomScenario(duration, inputs.annualReturn, inputs.inflation, returnVolatility, inflationVolatility);
         const result = calculateScenarioPortfolioGrowth(inputs, scenario);
-        const finalValue = result.values[result.values.length - 1] || 0;
 
-        if (finalValue > 0) {
+        if (!result.hasShortfall) {
             successCount++;
         }
 
         result.values.forEach((value, index) => {
-            yearlyValues[index].push(value);
+            // Deflate each path before ranking: inflation differs between paths.
+            yearlyValues[index].push(showRealValues ? value / result.inflationFactors[index] : value);
         });
     }
 
@@ -1198,19 +1217,22 @@ function updatePortfolioSummary(mode, monteCarloAnalysis, stressDefinition, scen
     }
 
     const formatAmountForYear = helpers.formatAmountForYear || ((value) => formatCurrencyAmount(value));
+    const adjustValue = helpers.adjustValue || ((value) => value);
+    const shortfallWarning = scenarioData && scenarioData.hasShortfall
+        ? `  |  ${i18next.t('analysisSummaryShortfall', { year: scenarioData.firstShortfallYear })}`
+        : '';
 
     if (mode === 'monte-carlo' && monteCarloAnalysis) {
-        const finalYear = baseData && baseData.years.length ? baseData.years[baseData.years.length - 1] : new Date().getFullYear();
         const summaryParts = [
             i18next.t('analysisSummarySuccess', {
                 rate: Math.round(monteCarloAnalysis.successRate * 100),
                 count: monteCarloAnalysis.simulationCount
             }),
             i18next.t('analysisSummaryMedian', {
-                amount: formatAmountForYear(monteCarloAnalysis.finalP50, finalYear)
+                amount: formatCurrencyAmount(monteCarloAnalysis.finalP50)
             }),
             i18next.t('analysisSummaryDownside', {
-                amount: formatAmountForYear(monteCarloAnalysis.finalP10, finalYear)
+                amount: formatCurrencyAmount(monteCarloAnalysis.finalP10)
             })
         ];
 
@@ -1225,7 +1247,10 @@ function updatePortfolioSummary(mode, monteCarloAnalysis, stressDefinition, scen
 
         portfolioChartSummary.textContent = i18next.t(stressDefinition.summaryKey, {
             ending: formatAmountForYear(stressEndingValue, finalYear),
-            delta: formatAmountForYear(stressEndingValue - baseEndingValue, finalYear),
+            delta: formatCurrencyAmount(
+                adjustValue(stressEndingValue, finalYear, scenarioData)
+                - adjustValue(baseEndingValue, finalYear, baseData)
+            ),
             ...(stressDefinition.summaryParams
                 ? {
                     ...stressDefinition.summaryParams,
@@ -1234,12 +1259,12 @@ function updatePortfolioSummary(mode, monteCarloAnalysis, stressDefinition, scen
                         : stressDefinition.summaryParams.amount
                 }
                 : {})
-        });
+        }) + shortfallWarning;
         return;
     }
 
     if (mode !== 'monte-carlo' || !monteCarloAnalysis) {
-        portfolioChartSummary.textContent = i18next.t('analysisSummaryDeterministic');
+        portfolioChartSummary.textContent = i18next.t('analysisSummaryDeterministic') + shortfallWarning;
         return;
     }
 }
@@ -1259,8 +1284,9 @@ function updateChart() {
     const simulationCount = simulationCountSlider ? parseInt(simulationCountSlider.value, 10) : 500;
     const returnVolatility = returnVolatilitySlider ? parseFloat(returnVolatilitySlider.value) : 12;
     const inflationVolatility = inflationVolatilitySlider ? parseFloat(inflationVolatilitySlider.value) : 1;
+    const showRealValues = showRealValuesCheckbox ? showRealValuesCheckbox.checked : false;
     const monteCarloAnalysis = analysisMode === 'monte-carlo'
-        ? runMonteCarloAnalysis(inputs, simulationCount, returnVolatility, inflationVolatility)
+        ? runMonteCarloAnalysis(inputs, simulationCount, returnVolatility, inflationVolatility, showRealValues)
         : null;
 
     if (portfolioChart) {
@@ -1271,16 +1297,13 @@ function updateChart() {
         cashflowChart.destroy();
     }
 
-    const showRealValues = showRealValuesCheckbox ? showRealValuesCheckbox.checked : false;
-    const inflationRate = inputs.inflation / 100;
-    const startYear = chartData.years[0];
     const isMobile = window.innerWidth < 768;
 
-    const applyInflationAdjustment = (value, year) => {
+    const applyInflationAdjustment = (value, year, sourceData = chartData) => {
         if (value === null || value === undefined) return null;
         if (!showRealValues) return value;
-        const yearsPassed = year - startYear;
-        return value / Math.pow(1 + inflationRate, yearsPassed);
+        const yearsPassed = year - sourceData.years[0];
+        return value / sourceData.inflationFactors[yearsPassed];
     };
     const formatAmountForYear = (value, year) => formatCurrencyAmount(applyInflationAdjustment(value, year));
 
@@ -1303,7 +1326,7 @@ function updateChart() {
     });
 
     const basePortfolioData = deterministicData.values.map((value, index) =>
-        applyInflationAdjustment(value, deterministicData.years[index])
+        applyInflationAdjustment(value, deterministicData.years[index], deterministicData)
     );
     const stressPortfolioData = scenarioData.values.map((value, index) =>
         applyInflationAdjustment(value, scenarioData.years[index])
@@ -1325,20 +1348,18 @@ function updateChart() {
     );
 
     updateCashflowSummary(chartData, { formatAmountForYear });
-    updatePortfolioSummary(analysisMode, monteCarloAnalysis, stressDefinition, scenarioData, deterministicData, { formatAmountForYear });
+    updatePortfolioSummary(analysisMode, monteCarloAnalysis, stressDefinition, scenarioData, deterministicData, {
+        formatAmountForYear,
+        adjustValue: applyInflationAdjustment
+    });
 
     let portfolioDatasets;
 
     if (analysisMode === 'monte-carlo' && monteCarloAnalysis) {
-        const p10Data = monteCarloAnalysis.p10.map((value, index) =>
-            applyInflationAdjustment(value, deterministicData.years[index])
-        );
-        const p50Data = monteCarloAnalysis.p50.map((value, index) =>
-            applyInflationAdjustment(value, deterministicData.years[index])
-        );
-        const p90Data = monteCarloAnalysis.p90.map((value, index) =>
-            applyInflationAdjustment(value, deterministicData.years[index])
-        );
+        // Monte Carlo percentiles are already in the selected display units.
+        const p10Data = monteCarloAnalysis.p10;
+        const p50Data = monteCarloAnalysis.p50;
+        const p90Data = monteCarloAnalysis.p90;
 
         portfolioDatasets = [
             {

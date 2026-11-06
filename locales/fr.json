@@ -1,5 +1,7 @@
 {
     "titel": "FIRE Planner",
+    "contributionHelp": "Contribution = salaire restant après les dépenses courantes, hors pensions et frais supplémentaires. Les pensions sont ajoutées séparément ; les frais supplémentaires sont déduits séparément. Saisissez les pensions nettes en pouvoir d'achat actuel.",
+    "analysisSummaryShortfall": "Déficit non financé à partir de {{year}}, même si le portefeuille se rétablit ensuite.",
     "person1": "Tu",
     "currentAge1": "Âge",
     "retirementAge1": "Âge d'arrêt",
